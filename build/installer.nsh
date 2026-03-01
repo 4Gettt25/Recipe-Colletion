@@ -1,20 +1,22 @@
 !include "LogicLib.nsh"
 
 ; ─────────────────────────────────────────────────────────────────────────────
-; WaitForInstDirUnlocked  maxRetries  sleepMs
+; WaitForInstDirUnlocked  uniqueId  maxRetries  sleepMs
 ;
 ; Tries to create (and immediately delete) a probe file inside $INSTDIR.
 ; If anything—AV scanner, NGenuity, Defender—holds the directory or its files
 ; in a way that blocks write access, the open fails and the loop waits.
 ; Exits as soon as the write succeeds or maxRetries is exhausted.
+;
+; uniqueId must be a distinct plain string per call site (no spaces/dots).
 ; ─────────────────────────────────────────────────────────────────────────────
-!macro WaitForInstDirUnlocked maxRetries sleepMs
+!macro WaitForInstDirUnlocked uniqueId maxRetries sleepMs
   Push $0
   Push $1
 
   StrCpy $0 0
-  unlock_loop_${__LINE__}:
-    IntCmp $0 ${maxRetries} unlock_done_${__LINE__} unlock_done_${__LINE__} +1
+  unlock_loop_${uniqueId}:
+    IntCmp $0 ${maxRetries} unlock_done_${uniqueId} unlock_done_${uniqueId} +1
 
     ClearErrors
     CreateDirectory "$INSTDIR"
@@ -22,15 +24,15 @@
     ${IfNot} ${Errors}
       FileClose $1
       Delete "$INSTDIR\.__unlock_test"
-      Goto unlock_done_${__LINE__}
+      Goto unlock_done_${uniqueId}
     ${EndIf}
 
     DetailPrint "Waiting for install directory to be available... (attempt $0/${maxRetries})"
     Sleep ${sleepMs}
     IntOp $0 $0 + 1
-    Goto unlock_loop_${__LINE__}
+    Goto unlock_loop_${uniqueId}
 
-  unlock_done_${__LINE__}:
+  unlock_done_${uniqueId}:
   Pop $1
   Pop $0
 !macroend
@@ -48,7 +50,7 @@
 ; ── 2. customInit ────────────────────────────────────────────────────────────
 ; Runs after initMultiUser has already set $INSTDIR from INSTALL_REGISTRY_KEY.
 ;
-; Strategy A — registry bypass (fixes v1.0.3 → v1.0.10 path):
+; Strategy A — registry bypass (fixes v1.0.3 → current path):
 ;   Delete ${UNINSTALL_REGISTRY_KEY} so that uninstallOldVersion() finds no
 ;   UninstallString and returns immediately without running the old uninstaller.
 ;   The old uninstaller is what triggers NGenuity to re-scan the install dir,
@@ -74,7 +76,7 @@
   !endif
 
   ; Strategy B: wait for the install directory to accept writes (40 × 500 ms = 20 s max).
-  !insertmacro WaitForInstDirUnlocked 40 500
+  !insertmacro WaitForInstDirUnlocked "ci" 40 500
 !macroend
 
 ; ── 3. customUnInit ──────────────────────────────────────────────────────────
@@ -83,7 +85,7 @@
 ; un.atomicRMDir() tries to rename files, all scanner handles are released.
 ; (For older uninstallers that don't have this macro, Strategy A is the fix.)
 !macro customUnInit
-  !insertmacro WaitForInstDirUnlocked 40 500
+  !insertmacro WaitForInstDirUnlocked "cu" 40 500
 !macroend
 
 ; ── 4. customCheckAppRunning ─────────────────────────────────────────────────
