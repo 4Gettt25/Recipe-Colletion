@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Tray, Menu, dialog } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { spawn } from 'child_process';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 
@@ -106,7 +107,11 @@ if (!gotLock) {
     if (!app.isPackaged) return;
 
     autoUpdater.autoDownload = true;
-    autoUpdater.autoInstallOnAppQuit = true;
+    // We launch the installer ourselves via PowerShell so we can guarantee
+    // the entire Electron process tree is dead before NSIS starts.
+    autoUpdater.autoInstallOnAppQuit = false;
+
+    let installerPath = null;
 
     autoUpdater.on('update-available', (info) => {
       dialog.showMessageBox({ type: 'info', title: 'Update available', message: `Version ${info.version} is downloading...` });
@@ -117,22 +122,41 @@ if (!gotLock) {
     autoUpdater.on('error', (err) => {
       dialog.showMessageBox({ type: 'error', title: 'Update error', message: err.message });
     });
-    autoUpdater.on('update-downloaded', () => {
+    autoUpdater.on('update-downloaded', (info) => {
+      // electron-updater exposes the downloaded file path here.
+      installerPath = info.downloadedFile;
+
       dialog.showMessageBox({
         type: 'info',
         title: 'Update ready',
-        message: 'A new version has been downloaded. The app will close and restart to install it.',
+        message: 'A new version has been downloaded. The app will close and install it.',
         buttons: ['Install now', 'Later'],
       }).then(({ response }) => {
-        if (response === 0) {
-          isQuitting = true;
-          // Use app.quit() instead of quitAndInstall() so Electron fully shuts
-          // down every process (renderer, GPU helper, network service) BEFORE the
-          // installer launches. autoInstallOnAppQuit:true handles running the
-          // installer once the process tree is gone, eliminating the race condition
-          // where NSIS sees the app as still running and shows the close dialog.
-          app.quit();
+        if (response !== 0) return;
+
+        isQuitting = true;
+
+        if (installerPath) {
+          // Spawn a detached PowerShell process that:
+          //   1. Waits for THIS process (by PID) to fully exit.
+          //   2. Only then launches the installer.
+          // This guarantees NSIS starts after all Electron processes are gone,
+          // so the "Recipe Collection cannot be closed" dialog never appears.
+          const pid = process.pid;
+          const safePath = installerPath.replace(/'/g, "''"); // escape single quotes
+          const psCmd = [
+            `try { Wait-Process -Id ${pid} -Timeout 15 -ErrorAction SilentlyContinue } catch {}`,
+            `Start-Process -FilePath '${safePath}'`,
+          ].join('; ');
+
+          spawn('powershell.exe', [
+            '-NonInteractive', '-WindowStyle', 'Hidden', '-Command', psCmd,
+          ], { detached: true, stdio: 'ignore' }).unref();
         }
+
+        // Exit immediately — PowerShell's Wait-Process will detect this and
+        // launch the installer only after we're fully gone.
+        app.exit(0);
       });
     });
 
