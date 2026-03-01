@@ -121,12 +121,17 @@ if (!gotLock) {
       dialog.showMessageBox({
         type: 'info',
         title: 'Update ready',
-        message: 'A new version has been downloaded. It will be installed when you quit the app.',
+        message: 'A new version has been downloaded. The app will close and restart to install it.',
         buttons: ['Install now', 'Later'],
       }).then(({ response }) => {
         if (response === 0) {
           isQuitting = true;
-          autoUpdater.quitAndInstall();
+          // Use app.quit() instead of quitAndInstall() so Electron fully shuts
+          // down every process (renderer, GPU helper, network service) BEFORE the
+          // installer launches. autoInstallOnAppQuit:true handles running the
+          // installer once the process tree is gone, eliminating the race condition
+          // where NSIS sees the app as still running and shows the close dialog.
+          app.quit();
         }
       });
     });
