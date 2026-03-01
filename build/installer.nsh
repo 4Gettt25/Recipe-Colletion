@@ -1,24 +1,34 @@
-; Before checking if the app is running, ask it to quit gracefully.
-; The app uses Electron's single-instance lock: launching it with --quit
-; triggers the second-instance handler which calls app.quit() cleanly.
-; This shuts down the Express server and releases all file handles properly.
+; Kill the running instance before installation to prevent the
+; "Recipe Collection kann nicht geschlossen werden" dialog.
+;
+; Root cause: taskkill /IM does NOT support wildcards. The old pattern
+; "${PRODUCT_FILENAME}*.exe" always failed silently, leaving Electron helper
+; processes (renderer, GPU, network service) alive. NSIS then detected the
+; app as still running and showed the manual-close dialog.
+;
+; Fix: use the exact executable name ${APP_EXECUTABLE_FILENAME} ("Recipe Collection.exe").
+; All Electron sub-processes share that name, so /F /T kills the whole tree.
 
 !macro customInit
-  ; 1. Ask the running instance to quit gracefully via --quit flag.
-  ;    $INSTDIR is set by initMultiUser (runs before customInit) on updates.
+  ; 1. Ask the live instance to quit gracefully via the --quit flag.
+  ;    The single-instance lock relays it to the running app, which sets
+  ;    isQuitting=true and calls app.quit() cleanly (closes server + DB).
   nsExec::ExecToLog '"$INSTDIR\${APP_EXECUTABLE_FILENAME}" --quit'
   Pop $R0
-  ; 2. Give the app time to shut down cleanly (server + DB + Electron processes).
+  ; Give Electron time to shut down the Express server and release file handles.
   Sleep 3000
-  ; 3. Force-kill any remaining processes (GPU helper, renderer helper, etc.).
-  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM "${PRODUCT_FILENAME}*.exe" /T'
+
+  ; 2. Force-kill any surviving processes by EXACT name (no wildcard).
+  ;    /T kills the entire process tree (renderer, GPU helper, network service).
+  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM "${APP_EXECUTABLE_FILENAME}" /T'
   Pop $R0
-  Sleep 2000
+  Sleep 1500
 !macroend
 
 !macro customCheckAppRunning
-  ; App already quit in customInit. Kill any survivors and proceed without dialog.
-  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM "${PRODUCT_FILENAME}*.exe" /T'
+  ; Called when the user clicks "Wiederholen / Retry" after the dialog appears.
+  ; Kill survivors with the exact name so the install proceeds immediately.
+  nsExec::ExecToLog '"$SYSDIR\taskkill.exe" /F /IM "${APP_EXECUTABLE_FILENAME}" /T'
   Pop $R0
   Sleep 1000
 !macroend
