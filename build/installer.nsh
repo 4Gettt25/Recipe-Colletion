@@ -1,33 +1,42 @@
+!include "LogicLib.nsh"
+
 ; ─────────────────────────────────────────────────────────────────────────────
-; Fix for "Recipe Collection cannot be closed" dialog during auto-update.
+; WaitForInstDirUnlocked  maxRetries  sleepMs
 ;
-; ROOT CAUSE (discovered v1.0.9):
-;   The new installer's uninstallOldVersion() runs the OLD version's uninstaller
-;   silently. The old uninstaller's un.checkAppRunning sleeps 3 s after killing
-;   the process. During that sleep, NGenuity2Helper.exe (HP OMEN software) re-
-;   acquires a file handle on Recipe Collection.exe without FILE_SHARE_DELETE.
-;   When un.atomicRMDir() then tries to rename/move the exe, Windows refuses
-;   (sharing violation). After 5 failed uninstaller runs, NSIS shows the
-;   misleading "appCannotBeClosed" dialog even though the app is NOT running.
-;
-; FIX (customInit):
-;   Delete the ${UNINSTALL_REGISTRY_KEY} entries in customInit (which runs
-;   inside .onInit, after $INSTDIR is already set from ${INSTALL_REGISTRY_KEY}).
-;   When uninstallOldVersion() reads the registry and finds no UninstallString,
-;   it returns immediately without launching the old uninstaller.
-;   The new installer then overwrites files directly — no lock issues.
-;
-;   ${INSTALL_REGISTRY_KEY}   — has InstallLocation (already read into $INSTDIR)
-;   ${UNINSTALL_REGISTRY_KEY} — has UninstallString (what we delete here)
-;   These are separate keys, so $INSTDIR is unaffected.
-;
-; RETAINED KILLS (preInit + customCheckAppRunning):
-;   Belt-and-suspenders: kill any lingering Recipe Collection.exe process so
-;   the new installer can overwrite the exe files.
+; Tries to create (and immediately delete) a probe file inside $INSTDIR.
+; If anything—AV scanner, NGenuity, Defender—holds the directory or its files
+; in a way that blocks write access, the open fails and the loop waits.
+; Exits as soon as the write succeeds or maxRetries is exhausted.
 ; ─────────────────────────────────────────────────────────────────────────────
+!macro WaitForInstDirUnlocked maxRetries sleepMs
+  Push $0
+  Push $1
+
+  StrCpy $0 0
+  unlock_loop_${__LINE__}:
+    IntCmp $0 ${maxRetries} unlock_done_${__LINE__} unlock_done_${__LINE__} +1
+
+    ClearErrors
+    CreateDirectory "$INSTDIR"
+    FileOpen $1 "$INSTDIR\.__unlock_test" w
+    ${IfNot} ${Errors}
+      FileClose $1
+      Delete "$INSTDIR\.__unlock_test"
+      Goto unlock_done_${__LINE__}
+    ${EndIf}
+
+    DetailPrint "Waiting for install directory to be available... (attempt $0/${maxRetries})"
+    Sleep ${sleepMs}
+    IntOp $0 $0 + 1
+    Goto unlock_loop_${__LINE__}
+
+  unlock_done_${__LINE__}:
+  Pop $1
+  Pop $0
+!macroend
 
 ; ── 1. preInit ───────────────────────────────────────────────────────────────
-; Earliest hook — runs at the very top of .onInit, before any GUI.
+; Very first hook — fires at the top of .onInit before any GUI.
 !macro preInit
   nsExec::ExecToLog 'taskkill /F /IM "Recipe Collection.exe"'
   Pop $R0
@@ -38,8 +47,17 @@
 
 ; ── 2. customInit ────────────────────────────────────────────────────────────
 ; Runs after initMultiUser has already set $INSTDIR from INSTALL_REGISTRY_KEY.
-; We delete the UNINSTALL_REGISTRY_KEY so that uninstallOldVersion() finds no
-; UninstallString and returns early — bypassing the old uninstaller entirely.
+;
+; Strategy A — registry bypass (fixes v1.0.3 → v1.0.10 path):
+;   Delete ${UNINSTALL_REGISTRY_KEY} so that uninstallOldVersion() finds no
+;   UninstallString and returns immediately without running the old uninstaller.
+;   The old uninstaller is what triggers NGenuity to re-scan the install dir,
+;   causing rename failures inside un.atomicRMDir. Skipping it entirely avoids
+;   the problem. $INSTDIR is unaffected (set from the separate INSTALL_REGISTRY_KEY).
+;
+; Strategy B — directory lock wait (extra safety):
+;   Retry-loop that writes a probe file to $INSTDIR. Catches any residual
+;   lock held by NGenuity or other security software.
 !macro customInit
   nsExec::ExecToLog 'taskkill /F /IM "Recipe Collection.exe"'
   Pop $R0
@@ -47,21 +65,30 @@
   Pop $R0
   Sleep 1000
 
-  ; ── Bypass old uninstaller (NGenuity lock fix) ──────────────────────────
-  ; Delete the standard Windows uninstall registry entries so that
-  ; uninstallOldVersion() short-circuits and never runs the old .exe.
-  ; $INSTDIR is already set (from INSTALL_REGISTRY_KEY) and stays correct.
+  ; Strategy A: bypass old uninstaller by wiping its registry entries.
   DeleteRegKey HKCU "${UNINSTALL_REGISTRY_KEY}"
   DeleteRegKey HKLM "${UNINSTALL_REGISTRY_KEY}"
   !ifdef UNINSTALL_REGISTRY_KEY_2
     DeleteRegKey HKCU "${UNINSTALL_REGISTRY_KEY_2}"
     DeleteRegKey HKLM "${UNINSTALL_REGISTRY_KEY_2}"
   !endif
+
+  ; Strategy B: wait for the install directory to accept writes (40 × 500 ms = 20 s max).
+  !insertmacro WaitForInstDirUnlocked 40 500
 !macroend
 
-; ── 3. customCheckAppRunning ─────────────────────────────────────────────────
-; Replaces the built-in "please close the app" dialog in the install Section.
-; With this macro defined the dialog is NEVER shown; we kill and continue.
+; ── 3. customUnInit ──────────────────────────────────────────────────────────
+; Runs inside THIS version's uninstaller — including when a FUTURE version's
+; installer invokes it silently. Waiting here ensures that by the time
+; un.atomicRMDir() tries to rename files, all scanner handles are released.
+; (For older uninstallers that don't have this macro, Strategy A is the fix.)
+!macro customUnInit
+  !insertmacro WaitForInstDirUnlocked 40 500
+!macroend
+
+; ── 4. customCheckAppRunning ─────────────────────────────────────────────────
+; Replaces electron-builder's built-in "please close the app" dialog entirely.
+; With this macro defined, no dialog is ever shown; we kill and continue.
 !macro customCheckAppRunning
   nsExec::ExecToLog 'taskkill /F /IM "Recipe Collection.exe"'
   Pop $R0
