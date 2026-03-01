@@ -33,7 +33,7 @@ export function RecipeCard({ recipe, onClick, onToggleFavourite, onSaveToPhone }
           />
         </div>
       ) : (
-        <div className="w-full h-24 bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center relative">
+        <div className="w-full h-40 bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center relative">
           <ImageIcon className="w-10 h-10 text-orange-300" />
           <FavouriteButton
             favourite={recipe.favourite}
@@ -68,14 +68,14 @@ export function RecipeCard({ recipe, onClick, onToggleFavourite, onSaveToPhone }
         <p className="text-sm text-gray-600 line-clamp-2 mb-3">
           {recipe.description || 'No description'}
         </p>
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-col gap-2 text-sm">
           <div className="flex items-center gap-3 text-gray-500">
-            <span className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <Users className="w-4 h-4 shrink-0" />
               {recipe.basePortions} portions
             </span>
-            <span className="flex items-center gap-1">
-              <Star className="w-4 h-4" />
+            <span className="flex items-center gap-1 whitespace-nowrap">
+              <Star className="w-4 h-4 shrink-0" />
               {recipe.ingredients.length} ingredients
             </span>
           </div>

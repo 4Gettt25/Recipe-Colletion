@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BarcodeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning';
 import { Monitor, Smartphone, Wifi, LogOut, RefreshCw, Copy, Check, ChevronDown } from 'lucide-react';
+
+declare const __APP_VERSION__: string;
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
@@ -229,6 +231,9 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
               </div>
             </>
           )}
+
+          <Separator />
+          <p className="text-xs text-gray-400 text-center">Version {__APP_VERSION__}</p>
         </div>
       </SheetContent>
     </Sheet>
