@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BarcodeScanner, BarcodeFormat } from '@capacitor-mlkit/barcode-scanning';
-import { Monitor, Smartphone, Wifi, LogOut, RefreshCw, Copy, Check, ChevronDown } from 'lucide-react';
+import { Monitor, Smartphone, Wifi, LogOut, RefreshCw, Copy, Check, ChevronDown, Globe } from 'lucide-react';
 
 declare const __APP_VERSION__: string;
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -9,7 +9,16 @@ import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { isNative, getServerUrl, saveServerUrl, clearServerUrl } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n/i18n';
 
 interface Props {
   open: boolean;
@@ -20,6 +29,7 @@ interface Props {
 }
 
 export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer, connectionError }: Props) {
+  const { t } = useTranslation();
   const native = isNative();
   const serverUrl = getServerUrl();
   const connected = native && !!serverUrl;
@@ -87,19 +97,21 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
     setSyncing(true);
     try {
       await onSyncToServer();
-      toast.success('Recipes synced to desktop!');
+      toast.success(t('toast.syncedToDesktop'));
     } catch {
-      toast.error('Sync failed. Make sure the desktop is reachable.');
+      toast.error(t('toast.syncFailed'));
     } finally {
       setSyncing(false);
     }
-  }, [onSyncToServer]);
+  }, [onSyncToServer, t]);
+
+  const currentLang = i18n.resolvedLanguage ?? 'en';
 
   return (
     <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <SheetContent side="right" className="overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Settings</SheetTitle>
+          <SheetTitle>{t('settings.title')}</SheetTitle>
         </SheetHeader>
 
         <div className="px-4 pb-6 flex flex-col gap-6">
@@ -108,7 +120,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Smartphone className="w-4 h-4 text-gray-500" />
-                <span className="font-medium text-sm">Connect Mobile</span>
+                <span className="font-medium text-sm">{t('settings.connectMobile')}</span>
               </div>
               {qrUrl ? (
                 <>
@@ -117,9 +129,8 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
                       <QRCodeSVG value={qrUrl} size={180} />
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500 text-center">
-                    Open the Android app and scan this QR code.<br />
-                    Both devices must be on the same Wi-Fi.
+                  <p className="text-xs text-gray-500 text-center" style={{ whiteSpace: 'pre-line' }}>
+                    {t('settings.qrHint')}
                   </p>
                   <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2">
                     <code className="text-sm flex-1 truncate text-gray-700">{qrUrl}</code>
@@ -131,7 +142,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
                     <div className="space-y-1">
                       <p className="text-xs text-gray-400 flex items-center gap-1">
                         <ChevronDown className="w-3 h-3" />
-                        Wrong network? Try another address:
+                        {t('settings.wrongNetwork')}
                       </p>
                       <div className="flex flex-wrap gap-1">
                         {ips.map(ip => (
@@ -152,7 +163,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
                   )}
                 </>
               ) : (
-                <p className="text-gray-400 text-sm py-4 text-center">Detecting…</p>
+                <p className="text-gray-400 text-sm py-4 text-center">{t('settings.detecting')}</p>
               )}
             </div>
           )}
@@ -162,7 +173,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Monitor className="w-4 h-4 text-gray-500" />
-                <span className="font-medium text-sm">Desktop Connection</span>
+                <span className="font-medium text-sm">{t('settings.desktopConnection')}</span>
               </div>
               {connected ? (
                 <div className="flex flex-col gap-2">
@@ -173,21 +184,21 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
                     </span>
                   </div>
                   {connectionError && (
-                    <p className="text-xs text-red-500 break-all">Error: {connectionError}</p>
+                    <p className="text-xs text-red-500 break-all">{t('settings.error', { message: connectionError })}</p>
                   )}
                   <Button size="sm" variant="outline" onClick={disconnect} className="w-fit">
                     <LogOut className="w-3.5 h-3.5 mr-1.5" />
-                    Disconnect
+                    {t('settings.disconnect')}
                   </Button>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
                   <Button size="sm" onClick={startScan}>
-                    Scan QR Code
+                    {t('settings.scanQR')}
                   </Button>
                   <div className="flex items-center gap-2">
                     <Separator className="flex-1" />
-                    <span className="text-xs text-gray-400">or enter manually</span>
+                    <span className="text-xs text-gray-400">{t('settings.orManually')}</span>
                     <Separator className="flex-1" />
                   </div>
                   <div className="flex gap-2">
@@ -198,7 +209,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
                       className="text-sm"
                     />
                     <Button size="sm" onClick={connectManual}>
-                      Connect
+                      {t('settings.connect')}
                     </Button>
                   </div>
                 </div>
@@ -213,27 +224,46 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-2">
                   <RefreshCw className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium text-sm">Sync</span>
+                  <span className="font-medium text-sm">{t('settings.sync')}</span>
                 </div>
                 {localRecipeCount > 0 ? (
                   <div className="flex flex-col gap-2">
                     <p className="text-sm text-gray-600">
-                      {localRecipeCount} phone-only recipe{localRecipeCount !== 1 ? 's' : ''} not yet on desktop.
+                      {t('settings.localRecipes', { count: localRecipeCount })}
                     </p>
                     <Button size="sm" onClick={handleSync} disabled={syncing} className="w-fit">
                       <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${syncing ? 'animate-spin' : ''}`} />
-                      Sync to Desktop
+                      {t('settings.syncToDesktop')}
                     </Button>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">All recipes are synced to desktop.</p>
+                  <p className="text-sm text-gray-500">{t('settings.allSynced')}</p>
                 )}
               </div>
             </>
           )}
 
           <Separator />
-          <p className="text-xs text-gray-400 text-center">Version {__APP_VERSION__}</p>
+
+          {/* Language selector */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-gray-500" />
+              <span className="font-medium text-sm">{t('settings.language')}</span>
+            </div>
+            <Select value={currentLang} onValueChange={(lang) => i18n.changeLanguage(lang)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="de">Deutsch</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+          <p className="text-xs text-gray-400 text-center">{t('settings.version', { version: __APP_VERSION__ })}</p>
         </div>
       </SheetContent>
     </Sheet>

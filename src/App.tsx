@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Toaster, toast } from 'sonner';
 import { Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useRecipes } from '@/hooks/useRecipes';
 import type { Recipe, RecipeFormData } from '@/types/recipe';
 import { RecipeList } from '@/components/RecipeList';
@@ -21,6 +22,7 @@ export default function App() {
 }
 
 function RecipeApp() {
+  const { t } = useTranslation();
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -66,13 +68,13 @@ function RecipeApp() {
   const handleSaveRecipe = (formData: RecipeFormData) => {
     if (editingRecipe) {
       updateRecipe(editingRecipe.id, formData);
-      toast.success('Recipe updated successfully!');
+      toast.success(t('toast.recipeUpdated'));
       if (selectedRecipe?.id === editingRecipe.id) {
         setSelectedRecipe({ ...selectedRecipe, ...formData });
       }
     } else {
       addRecipe(formData);
-      toast.success('Recipe added successfully!');
+      toast.success(t('toast.recipeAdded'));
     }
     setIsFormOpen(false);
     setEditingRecipe(null);
@@ -81,7 +83,7 @@ function RecipeApp() {
   const handleDeleteRecipe = () => {
     if (selectedRecipe) {
       deleteRecipe(selectedRecipe.id);
-      toast.success('Recipe deleted successfully!');
+      toast.success(t('toast.recipeDeleted'));
       setSelectedRecipe(null);
       setView('list');
     }
@@ -90,14 +92,14 @@ function RecipeApp() {
   const handleRateRecipe = (rating: number) => {
     if (selectedRecipe) {
       updateRating(selectedRecipe.id, rating);
-      toast.success('Rating saved!');
+      toast.success(t('toast.ratingSaved'));
     }
   };
 
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-gray-500">Loading…</div>
+        <div className="animate-pulse text-gray-500">{t('app.loading')}</div>
       </div>
     );
   }
@@ -111,11 +113,11 @@ function RecipeApp() {
               onClick={handleBackToList}
               className="text-xl font-bold text-orange-600 cursor-pointer hover:text-orange-700 transition-colors"
             >
-              Recipe Collection
+              {t('app.title')}
             </h1>
             <div className="flex items-center gap-3">
               <div className="text-sm text-gray-500">
-                {recipes.length} recipe{recipes.length !== 1 ? 's' : ''}
+                {t('app.recipeCount', { count: recipes.length })}
               </div>
               <div className="relative">
                 <Button size="sm" variant="ghost" onClick={() => setShowSettings(true)}>
@@ -132,9 +134,9 @@ function RecipeApp() {
 
       {connectionError && isNative() && getServerUrl() && (
         <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2 flex items-center justify-between">
-          <p className="text-xs text-yellow-800">Can't reach desktop: {connectionError}</p>
+          <p className="text-xs text-yellow-800">{t('app.errorBanner', { error: connectionError })}</p>
           <Button size="sm" variant="ghost" className="text-yellow-800 h-6 text-xs" onClick={() => setShowSettings(true)}>
-            Settings
+            {t('app.settings')}
           </Button>
         </div>
       )}
@@ -146,7 +148,7 @@ function RecipeApp() {
             onAddRecipe={handleAddRecipe}
             onSelectRecipe={handleSelectRecipe}
             onToggleFavourite={toggleFavourite}
-            onSaveToPhone={(id) => { saveToPhone(id); toast.success('Saved to phone for offline use!'); }}
+            onSaveToPhone={(id) => { saveToPhone(id); toast.success(t('toast.savedToPhone')); }}
           />
         )}
 
@@ -173,7 +175,7 @@ function RecipeApp() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingRecipe ? 'Edit Recipe' : 'Add New Recipe'}
+              {editingRecipe ? t('app.editRecipe') : t('app.addNewRecipe')}
             </DialogTitle>
           </DialogHeader>
           <RecipeForm

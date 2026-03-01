@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import type { Ingredient, RecipeFormData } from '@/types/recipe';
+import { useTranslation } from 'react-i18next';
 
 interface RecipeFormProps {
   initialData?: Partial<RecipeFormData>;
@@ -25,6 +26,7 @@ const emptyFormData: RecipeFormData = {
 };
 
 export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<RecipeFormData>({
     ...emptyFormData,
     ...initialData,
@@ -37,7 +39,7 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image must be less than 5MB');
+        alert(t('recipeForm.maxSize'));
         return;
       }
       const reader = new FileReader();
@@ -127,31 +129,31 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Title */}
       <div className="space-y-2">
-        <Label htmlFor="title">Recipe Title *</Label>
+        <Label htmlFor="title">{t('recipeForm.titleLabel')}</Label>
         <Input
           id="title"
           value={formData.title}
           onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-          placeholder="e.g., Spaghetti Carbonara"
+          placeholder={t('recipeForm.titlePlaceholder')}
           required
         />
       </div>
 
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">{t('recipeForm.descriptionLabel')}</Label>
         <Textarea
           id="description"
           value={formData.description}
           onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-          placeholder="Brief description of the dish..."
+          placeholder={t('recipeForm.descriptionPlaceholder')}
           rows={3}
         />
       </div>
 
       {/* Image Upload */}
       <div className="space-y-2">
-        <Label>Recipe Image</Label>
+        <Label>{t('recipeForm.imageLabel')}</Label>
         <div className="flex items-start gap-4">
           {formData.imageUrl ? (
             <div className="relative">
@@ -174,7 +176,7 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
               className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-orange-400 hover:bg-orange-50 transition-colors"
             >
               <ImageIcon className="w-8 h-8 text-gray-400 mb-1" />
-              <span className="text-xs text-gray-500">Add photo</span>
+              <span className="text-xs text-gray-500">{t('recipeForm.addPhoto')}</span>
             </div>
           )}
           <input
@@ -185,15 +187,15 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
             className="hidden"
           />
           <div className="text-sm text-gray-500 pt-2">
-            <p>Upload a photo of your dish.</p>
-            <p>Max size: 5MB</p>
+            <p>{t('recipeForm.uploadHint')}</p>
+            <p>{t('recipeForm.maxSize')}</p>
           </div>
         </div>
       </div>
 
       {/* Base Portions */}
       <div className="space-y-2">
-        <Label htmlFor="portions">Base Portions *</Label>
+        <Label htmlFor="portions">{t('recipeForm.portionsLabel')}</Label>
         <div className="flex items-center gap-2">
           <Input
             id="portions"
@@ -207,23 +209,23 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
             className="w-24"
           />
           <span className="text-sm text-gray-500">
-            This is the default portion size. You can scale it later when viewing the recipe.
+            {t('recipeForm.portionsHint')}
           </span>
         </div>
       </div>
 
       {/* Ingredients */}
       <div className="space-y-3">
-        <Label>Ingredients *</Label>
+        <Label>{t('recipeForm.ingredientsLabel')}</Label>
         <div className="flex gap-2">
           <Input
-            placeholder="Ingredient name"
+            placeholder={t('recipeForm.ingredientName')}
             value={newIngredient.name}
             onChange={(e) => setNewIngredient((prev) => ({ ...prev, name: e.target.value }))}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
           />
           <Input
-            placeholder="Amount"
+            placeholder={t('recipeForm.amount')}
             type="number"
             step="0.01"
             className="w-24"
@@ -232,7 +234,7 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
           />
           <Input
-            placeholder="Unit"
+            placeholder={t('recipeForm.unit')}
             className="w-24"
             value={newIngredient.unit}
             onChange={(e) => setNewIngredient((prev) => ({ ...prev, unit: e.target.value }))}
@@ -265,14 +267,14 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
 
       {/* Instructions */}
       <div className="space-y-3">
-        <Label>Instructions</Label>
+        <Label>{t('recipeForm.instructionsLabel')}</Label>
         {formData.instructions.map((instruction, index) => (
           <div key={index} className="flex gap-2">
             <span className="text-sm text-gray-500 w-6 flex-shrink-0 pt-2">{index + 1}.</span>
             <Textarea
               value={instruction}
               onChange={(e) => handleUpdateInstruction(index, e.target.value)}
-              placeholder={`Step ${index + 1}...`}
+              placeholder={t('recipeForm.stepPlaceholder', { number: index + 1 })}
               rows={2}
             />
             {formData.instructions.length > 1 && (
@@ -288,16 +290,16 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
         ))}
         <Button type="button" onClick={handleAddInstruction} variant="outline" size="sm">
           <Plus className="w-4 h-4 mr-1" />
-          Add Step
+          {t('recipeForm.addStep')}
         </Button>
       </div>
 
       {/* Tags */}
       <div className="space-y-3">
-        <Label>Tags</Label>
+        <Label>{t('recipeForm.tagsLabel')}</Label>
         <div className="flex gap-2">
           <Input
-            placeholder="Add a tag (e.g., Italian, Vegetarian)"
+            placeholder={t('recipeForm.tagPlaceholder')}
             value={newTag}
             onChange={(e) => setNewTag(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
@@ -321,10 +323,10 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
       {/* Actions */}
       <div className="flex gap-3 pt-4">
         <Button type="submit" className="flex-1">
-          Save Recipe
+          {t('recipeForm.saveRecipe')}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          {t('recipeForm.cancel')}
         </Button>
       </div>
     </form>

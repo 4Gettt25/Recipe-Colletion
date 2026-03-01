@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import type { Recipe } from '@/types/recipe';
 import { StarRating } from './StarRating';
+import { useTranslation } from 'react-i18next';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,20 +27,20 @@ interface RecipeDetailProps {
 }
 
 export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: RecipeDetailProps) {
+  const { t, i18n } = useTranslation();
   const [portions, setPortions] = useState(recipe.basePortions);
 
   const scaleFactor = portions / recipe.basePortions;
 
   const scaleAmount = (amount: number) => {
     const scaled = amount * scaleFactor;
-    // Round to reasonable decimal places
     if (scaled >= 10) return Math.round(scaled);
     if (scaled >= 1) return Math.round(scaled * 10) / 10;
     return Math.round(scaled * 100) / 100;
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(i18n.language, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -52,7 +53,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1" />
-          Back
+          {t('recipeDetail.back')}
         </Button>
       </div>
 
@@ -62,32 +63,32 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
           <div>
             <h1 className="text-2xl font-bold">{recipe.title}</h1>
             <p className="text-gray-500 text-sm mt-1">
-              Created on {formatDate(recipe.createdAt)}
+              {t('recipeDetail.createdOn', { date: formatDate(recipe.createdAt) })}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={onEdit}>
               <Edit2 className="w-4 h-4 mr-1" />
-              Edit
+              {t('recipeDetail.edit')}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
                   <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
+                  {t('recipeDetail.delete')}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
+                  <AlertDialogTitle>{t('recipeDetail.deleteTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete &quot;{recipe.title}&quot;? This action cannot be undone.
+                    {t('recipeDetail.deleteConfirm', { title: recipe.title })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t('recipeDetail.cancel')}</AlertDialogCancel>
                   <AlertDialogAction onClick={onDelete} className="bg-red-600 hover:bg-red-700">
-                    Delete
+                    {t('recipeDetail.delete')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -112,7 +113,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
 
         {/* Rating */}
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-600">Your Rating:</span>
+          <span className="text-sm text-gray-600">{t('recipeDetail.yourRating')}</span>
           <StarRating rating={recipe.rating} interactive onRate={onRate} />
         </div>
 
@@ -128,7 +129,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
         ) : (
           <div className="w-full h-40 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100 flex flex-col items-center justify-center">
             <ImageIcon className="w-12 h-12 text-orange-300 mb-2" />
-            <span className="text-sm text-orange-400">No image uploaded</span>
+            <span className="text-sm text-orange-400">{t('recipeDetail.noImage')}</span>
           </div>
         )}
       </div>
@@ -140,7 +141,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-orange-600" />
-            <span className="font-medium">Portions</span>
+            <span className="font-medium">{t('recipeDetail.portions')}</span>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -163,7 +164,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
           </div>
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          Base recipe makes {recipe.basePortions} portions. Adjust to scale ingredients.
+          {t('recipeDetail.portionsHint', { count: recipe.basePortions })}
         </p>
       </div>
 
@@ -171,7 +172,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
       <div className="space-y-3">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <ChefHat className="w-5 h-5" />
-          Ingredients
+          {t('recipeDetail.ingredients')}
         </h2>
         <ul className="space-y-2">
           {recipe.ingredients.map((ingredient) => (
@@ -191,7 +192,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
       {/* Instructions */}
       {recipe.instructions.some((inst) => inst.trim()) && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Instructions</h2>
+          <h2 className="text-lg font-semibold">{t('recipeDetail.instructions')}</h2>
           <ol className="space-y-4">
             {recipe.instructions
               .filter((inst) => inst.trim())

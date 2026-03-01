@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Check, Wifi, ChevronDown } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   open: boolean;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function QRCodePanel({ open, onClose }: Props) {
+  const { t } = useTranslation();
   const [ips, setIps] = useState<string[]>([]);
   const [selectedIp, setSelectedIp] = useState<string | null>(null);
   const [port, setPort] = useState<number>(3001);
@@ -42,7 +44,7 @@ export function QRCodePanel({ open, onClose }: Props) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Wifi className="w-5 h-5 text-orange-600" />
-            Connect Mobile
+            {t('settings.connectMobile')}
           </DialogTitle>
         </DialogHeader>
 
@@ -53,9 +55,8 @@ export function QRCodePanel({ open, onClose }: Props) {
                 <QRCodeSVG value={url} size={200} />
               </div>
 
-              <p className="text-sm text-gray-500 text-center">
-                Open the Android app and scan this QR code.<br />
-                Both devices must be on the same Wi-Fi.
+              <p className="text-sm text-gray-500 text-center" style={{ whiteSpace: 'pre-line' }}>
+                {t('settings.qrHint')}
               </p>
 
               {/* URL + copy */}
@@ -71,7 +72,7 @@ export function QRCodePanel({ open, onClose }: Props) {
                 <div className="w-full space-y-1">
                   <p className="text-xs text-gray-400 flex items-center gap-1">
                     <ChevronDown className="w-3 h-3" />
-                    Wrong network? Try another address:
+                    {t('settings.wrongNetwork')}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {ips.map((ip) => (
@@ -92,7 +93,7 @@ export function QRCodePanel({ open, onClose }: Props) {
               )}
             </>
           ) : (
-            <p className="text-gray-400 text-sm py-8">Detecting local IP address…</p>
+            <p className="text-gray-400 text-sm py-8">{t('qrPanel.detectingIp')}</p>
           )}
         </div>
       </DialogContent>

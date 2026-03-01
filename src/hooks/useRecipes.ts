@@ -3,6 +3,7 @@ import type { Recipe, RecipeFormData } from '@/types/recipe';
 import { isNative, getServerUrl, LOCAL_RECIPES_KEY } from '@/lib/api';
 
 const LEGACY_LS_KEY = 'recipe-collection-data';
+const SERVER_CACHE_KEY = 'recipe-server-cache';
 
 function loadLocalRecipes(): Recipe[] {
   try {
@@ -15,6 +16,22 @@ function loadLocalRecipes(): Recipe[] {
 function persistLocalRecipes(recipes: Recipe[]): void {
   localStorage.setItem(LOCAL_RECIPES_KEY,
     JSON.stringify(recipes.map(({ source: _s, ...r }) => r)));
+}
+
+// Cache the last known server recipes so the mobile app can show them
+// even when the desktop server is offline.
+function loadServerCache(): Recipe[] {
+  try {
+    const stored = localStorage.getItem(SERVER_CACHE_KEY);
+    if (!stored) return [];
+    return (JSON.parse(stored) as Recipe[]).map(r => ({ ...r, source: 'server' as const }));
+  } catch { return []; }
+}
+
+function cacheServerRecipes(recipes: Recipe[]): void {
+  try {
+    localStorage.setItem(SERVER_CACHE_KEY, JSON.stringify(recipes));
+  } catch { /* storage full — not critical */ }
 }
 
 function generateId() {
@@ -39,11 +56,13 @@ export function useRecipes() {
     });
   }, []);
 
+  // Load phone-local recipes from localStorage on startup (mobile only)
   useEffect(() => {
     if (!native) return;
     setLocalRecipesRaw(loadLocalRecipes());
   }, [native]);
 
+  // Initial fetch from server
   useEffect(() => {
     if (apiBase === null) { setIsLoaded(true); return; }
     fetch(`${apiBase}/recipes`)
@@ -59,17 +78,46 @@ export function useRecipes() {
                   fetch(`${apiBase}/recipes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(recipe) })
                 ));
                 localStorage.removeItem(LEGACY_LS_KEY);
-                setServerRecipes(legacy.map(r => ({ ...r, source: 'server' as const })));
+                const migrated = legacy.map(r => ({ ...r, source: 'server' as const }));
+                cacheServerRecipes(migrated);
+                setServerRecipes(migrated);
                 setIsLoaded(true);
                 return;
               }
             } catch {}
           }
         }
-        setServerRecipes(data.map(r => ({ ...r, source: 'server' as const })));
+        const fresh = data.map(r => ({ ...r, source: 'server' as const }));
+        cacheServerRecipes(fresh);
+        setServerRecipes(fresh);
+        setConnectionError(false);
         setIsLoaded(true);
       })
-      .catch(err => { setConnectionError(err?.message || String(err)); setIsLoaded(true); });
+      .catch(err => {
+        // Server unreachable — show cached recipes so nothing appears lost
+        const cached = loadServerCache();
+        if (cached.length > 0) setServerRecipes(cached);
+        setConnectionError(err?.message || String(err));
+        setIsLoaded(true);
+      });
+  }, [apiBase]);
+
+  // Poll for new recipes every 30 seconds (keeps both devices in sync)
+  useEffect(() => {
+    if (apiBase === null) return;
+    const poll = async () => {
+      try {
+        const data: Recipe[] = await fetch(`${apiBase}/recipes`).then(r => r.json());
+        const fresh = data.map(r => ({ ...r, source: 'server' as const }));
+        cacheServerRecipes(fresh);
+        setServerRecipes(fresh);
+        setConnectionError(false);
+      } catch (err: unknown) {
+        setConnectionError((err as Error)?.message || String(err));
+      }
+    };
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
   }, [apiBase]);
 
   const localRecipes = localRecipesRaw;
@@ -98,12 +146,17 @@ export function useRecipes() {
     if (apiBase === null) {
       setLocalRecipes(prev => [{ ...newRecipe, source: 'local' as const }, ...prev]);
     } else {
-      await fetch(`${apiBase}/recipes`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newRecipe),
-      });
-      setServerRecipes(prev => [{ ...newRecipe, source: 'server' as const }, ...prev]);
+      try {
+        await fetch(`${apiBase}/recipes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newRecipe),
+        });
+        setServerRecipes(prev => [{ ...newRecipe, source: 'server' as const }, ...prev]);
+      } catch {
+        // Server unreachable — fall back to local storage
+        setLocalRecipes(prev => [{ ...newRecipe, source: 'local' as const }, ...prev]);
+      }
     }
     return newRecipe.id;
   }, [apiBase, setLocalRecipes]);

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Recipe } from '@/types/recipe';
 import { StarRating } from './StarRating';
 import { isNative, isConnected } from '@/lib/api';
+import { useTranslation } from 'react-i18next';
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -13,6 +14,8 @@ interface RecipeCardProps {
 }
 
 export function RecipeCard({ recipe, onClick, onToggleFavourite, onSaveToPhone }: RecipeCardProps) {
+  const { t } = useTranslation();
+
   return (
     <Card
       onClick={onClick}
@@ -66,17 +69,17 @@ export function RecipeCard({ recipe, onClick, onToggleFavourite, onSaveToPhone }
       </CardHeader>
       <CardContent className="pt-0">
         <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-          {recipe.description || 'No description'}
+          {recipe.description || t('recipeCard.noDescription')}
         </p>
         <div className="flex flex-col gap-2 text-sm">
           <div className="flex items-center gap-3 text-gray-500">
             <span className="flex items-center gap-1 whitespace-nowrap">
               <Users className="w-4 h-4 shrink-0" />
-              {recipe.basePortions} portions
+              {t('recipeCard.portions', { count: recipe.basePortions })}
             </span>
             <span className="flex items-center gap-1 whitespace-nowrap">
               <Star className="w-4 h-4 shrink-0" />
-              {recipe.ingredients.length} ingredients
+              {t('recipeCard.ingredients', { count: recipe.ingredients.length })}
             </span>
           </div>
           <StarRating rating={recipe.rating} size="sm" />
@@ -86,27 +89,27 @@ export function RecipeCard({ recipe, onClick, onToggleFavourite, onSaveToPhone }
             {recipe.source === 'local' ? (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200">
                 <Smartphone className="w-3 h-3" />
-                Phone only
+                {t('recipeCard.phoneOnly')}
               </span>
             ) : recipe.source === 'saved' ? (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200">
                 <WifiOff className="w-3 h-3" />
-                Saved offline
+                {t('recipeCard.savedOffline')}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 border border-blue-200">
                 <Monitor className="w-3 h-3" />
-                Desktop
+                {t('recipeCard.desktop')}
               </span>
             )}
             {recipe.source === 'server' && isNative() && onSaveToPhone && (
               <button
                 onClick={e => { e.stopPropagation(); onSaveToPhone(recipe.id); }}
-                title="Save to phone for offline use"
+                title={t('recipeCard.saveToPhone')}
                 className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100 transition-colors"
               >
                 <Download className="w-3 h-3" />
-                Save to phone
+                {t('recipeCard.saveToPhone')}
               </button>
             )}
           </div>
@@ -125,10 +128,12 @@ function FavouriteButton({
   onToggle: (e: React.MouseEvent) => void;
   overlay?: boolean;
 }) {
+  const { t } = useTranslation();
+
   return (
     <button
       onClick={onToggle}
-      title={favourite ? 'Remove from favourites' : 'Add to favourites'}
+      title={favourite ? t('recipeCard.removeFromFavourites') : t('recipeCard.addToFavourites')}
       className={`
         absolute top-2 right-2 p-1.5 rounded-full transition-all duration-150
         ${overlay

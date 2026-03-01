@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { saveServerUrl } from '@/lib/api';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   onConnected: () => void;
 }
 
 export function ServerConnect({ onConnected }: Props) {
+  const { t } = useTranslation();
   const [scanning, setScanning] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
 
@@ -20,7 +22,7 @@ export function ServerConnect({ onConnected }: Props) {
       // Request camera permission using Capacitor 8's modern permission API
       const { camera } = await BarcodeScanner.requestPermissions();
       if (camera === 'denied') {
-        toast.error('Camera permission denied. Enter the URL manually below.');
+        toast.error(t('serverConnect.permissionDenied'));
         setScanning(false);
         return;
       }
@@ -54,16 +56,16 @@ export function ServerConnect({ onConnected }: Props) {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 gap-6">
       <div className="flex flex-col items-center gap-3">
         <ChefHat className="w-16 h-16 text-orange-600" />
-        <h1 className="text-2xl font-bold text-gray-900">Recipe Collection</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('app.title')}</h1>
         <p className="text-gray-500 text-center text-sm">
-          Connect to your desktop to access your recipes
+          {t('serverConnect.subtitle')}
         </p>
       </div>
 
       <div className="w-full max-w-xs space-y-4">
         <Button className="w-full" size="lg" onClick={startScan} disabled={scanning}>
           <QrCode className="w-5 h-5 mr-2" />
-          {scanning ? 'Opening camera…' : 'Scan QR Code'}
+          {scanning ? t('serverConnect.scanning') : t('serverConnect.scanQR')}
         </Button>
 
         <div className="relative">
@@ -72,7 +74,7 @@ export function ServerConnect({ onConnected }: Props) {
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-gray-50 px-2 text-gray-400 uppercase tracking-wide">
-              or enter manually
+              {t('serverConnect.orManually')}
             </span>
           </div>
         </div>
@@ -90,7 +92,7 @@ export function ServerConnect({ onConnected }: Props) {
         </div>
 
         <p className="text-xs text-gray-400 text-center">
-          Click "Connect Mobile" on the desktop app to see the QR code
+          {t('serverConnect.hint')}
         </p>
       </div>
     </div>

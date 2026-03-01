@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { RecipeCard } from './RecipeCard';
 import type { Recipe } from '@/types/recipe';
+import { useTranslation } from 'react-i18next';
 
 interface RecipeListProps {
   recipes: Recipe[];
@@ -21,6 +22,7 @@ interface RecipeListProps {
 }
 
 export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavourite, onSaveToPhone }: RecipeListProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'rating' | 'alphabetical'>('newest');
   const [filterTag, setFilterTag] = useState<string>('all');
@@ -99,15 +101,19 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ChefHat className="w-7 h-7 text-orange-600" />
-            My Recipes
+            {t('recipeList.title')}
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            {stats.totalRecipes} recipes · {stats.avgRating.toFixed(1)} avg rating · {stats.totalIngredients} ingredients
+            {t('recipeList.stats', {
+              recipes: stats.totalRecipes,
+              rating: stats.avgRating.toFixed(1),
+              ingredients: stats.totalIngredients,
+            })}
           </p>
         </div>
         <Button onClick={onAddRecipe}>
           <Plus className="w-4 h-4 mr-1" />
-          Add Recipe
+          {t('recipeList.addRecipe')}
         </Button>
       </div>
 
@@ -121,7 +127,7 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
               : 'text-gray-600 hover:text-gray-800'
           }`}
         >
-          All ({recipes.length})
+          {t('recipeList.all', { count: recipes.length })}
         </button>
         <button
           onClick={() => setActiveTab('favourites')}
@@ -132,7 +138,7 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
           }`}
         >
           <Heart className="w-4 h-4" />
-          Favourites ({favouritesCount})
+          {t('recipeList.favourites', { count: favouritesCount })}
         </button>
       </div>
 
@@ -141,7 +147,7 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
-            placeholder="Search recipes, ingredients, tags..."
+            placeholder={t('recipeList.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -154,18 +160,18 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="rating">Highest Rated</SelectItem>
-              <SelectItem value="alphabetical">A-Z</SelectItem>
+              <SelectItem value="newest">{t('recipeList.sortNewest')}</SelectItem>
+              <SelectItem value="rating">{t('recipeList.sortRating')}</SelectItem>
+              <SelectItem value="alphabetical">{t('recipeList.sortAlpha')}</SelectItem>
             </SelectContent>
           </Select>
           {allTags.length > 0 && (
             <Select value={filterTag} onValueChange={setFilterTag}>
               <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Filter by tag" />
+                <SelectValue placeholder={t('recipeList.filterByTag')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Tags</SelectItem>
+                <SelectItem value="all">{t('recipeList.allTags')}</SelectItem>
                 {allTags.map((tag) => (
                   <SelectItem key={tag} value={tag}>
                     {tag}
@@ -193,18 +199,18 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
       ) : (
         <div className="text-center py-12">
           <ChefHat className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-600">No recipes found</h3>
+          <h3 className="text-lg font-medium text-gray-600">{t('recipeList.noResults')}</h3>
           <p className="text-gray-500 mt-1">
             {searchQuery || filterTag !== 'all'
-              ? 'Try adjusting your search or filters'
+              ? t('recipeList.noResultsFilter')
               : activeTab === 'favourites'
-              ? 'No favourites yet. Click the star on any recipe card to add it here!'
-              : 'Start by adding your first recipe!'}
+              ? t('recipeList.noFavourites')
+              : t('recipeList.noRecipes')}
           </p>
           {!searchQuery && filterTag === 'all' && activeTab === 'all' && (
             <Button onClick={onAddRecipe} className="mt-4">
               <Plus className="w-4 h-4 mr-1" />
-              Add Recipe
+              {t('recipeList.addRecipe')}
             </Button>
           )}
         </div>
