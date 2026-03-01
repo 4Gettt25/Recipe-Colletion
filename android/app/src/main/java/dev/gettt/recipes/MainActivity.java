@@ -1,4 +1,4 @@
-package com.recipe.app;
+package dev.gettt.recipes;
 
 import com.getcapacitor.BridgeActivity;
 
