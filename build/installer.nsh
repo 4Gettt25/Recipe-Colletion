@@ -1,36 +1,34 @@
 ; ─────────────────────────────────────────────────────────────────────────────
-; Kill "Recipe Collection.exe" before NSIS checks whether the app is running.
-; We use three independent hooks so the process is gone long before the
-; Section's checkRunning fires, regardless of which Electron update path
-; launched the installer (quitAndInstall, app.quit, or a manual run).
+; Fix for "Recipe Collection cannot be closed" dialog during auto-update.
 ;
-; Process-kill strategy
-;   1. taskkill  — fast, built-in, kills by exact image name
-;   2. PowerShell Stop-Process  — catches edge cases taskkill misses
-;   Both are run without the full $SYSDIR path to avoid SysWOW64 redirect
-;   issues on some 64-bit systems.
+; ROOT CAUSE (discovered v1.0.9):
+;   The new installer's uninstallOldVersion() runs the OLD version's uninstaller
+;   silently. The old uninstaller's un.checkAppRunning sleeps 3 s after killing
+;   the process. During that sleep, NGenuity2Helper.exe (HP OMEN software) re-
+;   acquires a file handle on Recipe Collection.exe without FILE_SHARE_DELETE.
+;   When un.atomicRMDir() then tries to rename/move the exe, Windows refuses
+;   (sharing violation). After 5 failed uninstaller runs, NSIS shows the
+;   misleading "appCannotBeClosed" dialog even though the app is NOT running.
 ;
-; Macro call order (electron-builder):
-;   preInit  → very first thing (before GUI, before .onInit)
-;   customInit  → inside .onInit
-;   customCheckAppRunning  → replaces the default "please close" dialog in
-;     the install Section; if this macro is defined the dialog is never shown.
+; FIX (customInit):
+;   Delete the ${UNINSTALL_REGISTRY_KEY} entries in customInit (which runs
+;   inside .onInit, after $INSTDIR is already set from ${INSTALL_REGISTRY_KEY}).
+;   When uninstallOldVersion() reads the registry and finds no UninstallString,
+;   it returns immediately without launching the old uninstaller.
+;   The new installer then overwrites files directly — no lock issues.
+;
+;   ${INSTALL_REGISTRY_KEY}   — has InstallLocation (already read into $INSTDIR)
+;   ${UNINSTALL_REGISTRY_KEY} — has UninstallString (what we delete here)
+;   These are separate keys, so $INSTDIR is unaffected.
+;
+; RETAINED KILLS (preInit + customCheckAppRunning):
+;   Belt-and-suspenders: kill any lingering Recipe Collection.exe process so
+;   the new installer can overwrite the exe files.
 ; ─────────────────────────────────────────────────────────────────────────────
 
 ; ── 1. preInit ───────────────────────────────────────────────────────────────
-; Earliest possible hook. Gives the kill maximum time to complete before
-; the checkRunning call in the install Section.
+; Earliest hook — runs at the very top of .onInit, before any GUI.
 !macro preInit
-  nsExec::ExecToLog 'taskkill /F /IM "Recipe Collection.exe"'
-  Pop $R0
-  nsExec::ExecToLog 'powershell.exe -NonInteractive -WindowStyle Hidden -Command "Stop-Process -Name ''Recipe Collection'' -Force -ErrorAction SilentlyContinue"'
-  Pop $R0
-  Sleep 4000
-!macroend
-
-; ── 2. customInit ────────────────────────────────────────────────────────────
-; Runs in .onInit, after preInit. Second chance to kill before pages load.
-!macro customInit
   nsExec::ExecToLog 'taskkill /F /IM "Recipe Collection.exe"'
   Pop $R0
   nsExec::ExecToLog 'powershell.exe -NonInteractive -WindowStyle Hidden -Command "Stop-Process -Name ''Recipe Collection'' -Force -ErrorAction SilentlyContinue"'
@@ -38,14 +36,36 @@
   Sleep 2000
 !macroend
 
+; ── 2. customInit ────────────────────────────────────────────────────────────
+; Runs after initMultiUser has already set $INSTDIR from INSTALL_REGISTRY_KEY.
+; We delete the UNINSTALL_REGISTRY_KEY so that uninstallOldVersion() finds no
+; UninstallString and returns early — bypassing the old uninstaller entirely.
+!macro customInit
+  nsExec::ExecToLog 'taskkill /F /IM "Recipe Collection.exe"'
+  Pop $R0
+  nsExec::ExecToLog 'powershell.exe -NonInteractive -WindowStyle Hidden -Command "Stop-Process -Name ''Recipe Collection'' -Force -ErrorAction SilentlyContinue"'
+  Pop $R0
+  Sleep 1000
+
+  ; ── Bypass old uninstaller (NGenuity lock fix) ──────────────────────────
+  ; Delete the standard Windows uninstall registry entries so that
+  ; uninstallOldVersion() short-circuits and never runs the old .exe.
+  ; $INSTDIR is already set (from INSTALL_REGISTRY_KEY) and stays correct.
+  DeleteRegKey HKCU "${UNINSTALL_REGISTRY_KEY}"
+  DeleteRegKey HKLM "${UNINSTALL_REGISTRY_KEY}"
+  !ifdef UNINSTALL_REGISTRY_KEY_2
+    DeleteRegKey HKCU "${UNINSTALL_REGISTRY_KEY_2}"
+    DeleteRegKey HKLM "${UNINSTALL_REGISTRY_KEY_2}"
+  !endif
+!macroend
+
 ; ── 3. customCheckAppRunning ─────────────────────────────────────────────────
-; Replaces electron-builder's default running-app dialog entirely.
-; If this macro is defined, no "cannot close" dialog is ever shown;
-; we kill silently and installation continues.
+; Replaces the built-in "please close the app" dialog in the install Section.
+; With this macro defined the dialog is NEVER shown; we kill and continue.
 !macro customCheckAppRunning
   nsExec::ExecToLog 'taskkill /F /IM "Recipe Collection.exe"'
   Pop $R0
   nsExec::ExecToLog 'powershell.exe -NonInteractive -WindowStyle Hidden -Command "Stop-Process -Name ''Recipe Collection'' -Force -ErrorAction SilentlyContinue"'
   Pop $R0
-  Sleep 3000
+  Sleep 2000
 !macroend
