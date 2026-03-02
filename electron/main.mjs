@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Tray, Menu, dialog } from 'electron';
+import { app, BrowserWindow, Tray, Menu, dialog, shell } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import pkg from 'electron-updater';
@@ -119,18 +119,23 @@ if (!gotLock) {
     autoUpdater.on('error', (err) => {
       dialog.showMessageBox({ type: 'error', title: 'Update error', message: err.message });
     });
-    autoUpdater.on('update-downloaded', () => {
+    autoUpdater.on('update-downloaded', (info) => {
       dialog.showMessageBox({
         type: 'info',
         title: 'Update ready',
         message: 'A new version has been downloaded. The app will close and install it.',
         buttons: ['Install now', 'Later'],
-      }).then(({ response }) => {
+      }).then(async ({ response }) => {
         if (response !== 0) return;
         isQuitting = true;
-        // The NSIS installer handles killing any running instance via
-        // customCheckAppRunning, so we can hand off directly.
-        autoUpdater.quitAndInstall(false, true);
+        if (info.downloadedFile) {
+          // shell.openPath triggers the installer as an independent OS process
+          // so it survives the parent exiting and UAC prompts appear correctly.
+          await shell.openPath(info.downloadedFile);
+          app.exit(0);
+        } else {
+          autoUpdater.quitAndInstall(false, true);
+        }
       });
     });
 
