@@ -147,19 +147,28 @@ export function useRecipes() {
       setLocalRecipes(prev => [{ ...newRecipe, source: 'local' as const }, ...prev]);
     } else {
       try {
-        await fetch(`${apiBase}/recipes`, {
+        const res = await fetch(`${apiBase}/recipes`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newRecipe),
         });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error((body as { error?: string }).error || `HTTP ${res.status}`);
+        }
         setServerRecipes(prev => [{ ...newRecipe, source: 'server' as const }, ...prev]);
-      } catch {
-        // Server unreachable — fall back to local storage
-        setLocalRecipes(prev => [{ ...newRecipe, source: 'local' as const }, ...prev]);
+      } catch (err) {
+        if (native) {
+          // Mobile: server might be offline — fall back to local storage
+          setLocalRecipes(prev => [{ ...newRecipe, source: 'local' as const }, ...prev]);
+        } else {
+          // Electron/web: server is local, surface the error to the caller
+          throw err;
+        }
       }
     }
     return newRecipe.id;
-  }, [apiBase, setLocalRecipes]);
+  }, [apiBase, native, setLocalRecipes]);
 
   const updateRecipe = useCallback(async (id: string, formData: RecipeFormData) => {
     const updated = { ...formData, updatedAt: new Date().toISOString() };

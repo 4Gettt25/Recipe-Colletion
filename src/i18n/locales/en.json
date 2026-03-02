@@ -16,7 +16,8 @@
     "ratingSaved": "Rating saved!",
     "savedToPhone": "Saved to phone for offline use!",
     "syncedToDesktop": "Recipes synced to desktop!",
-    "syncFailed": "Sync failed. Make sure the desktop is reachable."
+    "syncFailed": "Sync failed. Make sure the desktop is reachable.",
+    "recipeSaveFailed": "Failed to save recipe: {{error}}"
   },
   "recipeCard": {
     "noDescription": "No description",

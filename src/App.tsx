@@ -65,19 +65,23 @@ function RecipeApp() {
     }
   };
 
-  const handleSaveRecipe = (formData: RecipeFormData) => {
-    if (editingRecipe) {
-      updateRecipe(editingRecipe.id, formData);
-      toast.success(t('toast.recipeUpdated'));
-      if (selectedRecipe?.id === editingRecipe.id) {
-        setSelectedRecipe({ ...selectedRecipe, ...formData });
+  const handleSaveRecipe = async (formData: RecipeFormData) => {
+    try {
+      if (editingRecipe) {
+        await updateRecipe(editingRecipe.id, formData);
+        toast.success(t('toast.recipeUpdated'));
+        if (selectedRecipe?.id === editingRecipe.id) {
+          setSelectedRecipe({ ...selectedRecipe, ...formData });
+        }
+      } else {
+        await addRecipe(formData);
+        toast.success(t('toast.recipeAdded'));
       }
-    } else {
-      addRecipe(formData);
-      toast.success(t('toast.recipeAdded'));
+      setIsFormOpen(false);
+      setEditingRecipe(null);
+    } catch (err) {
+      toast.error(t('toast.recipeSaveFailed', { error: (err as Error).message }));
     }
-    setIsFormOpen(false);
-    setEditingRecipe(null);
   };
 
   const handleDeleteRecipe = () => {

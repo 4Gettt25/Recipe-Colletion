@@ -16,7 +16,8 @@
     "ratingSaved": "Bewertung gespeichert!",
     "savedToPhone": "Offline auf dem Handy gespeichert!",
     "syncedToDesktop": "Rezepte mit Desktop synchronisiert!",
-    "syncFailed": "Synchronisierung fehlgeschlagen. Ist der Desktop erreichbar?"
+    "syncFailed": "Synchronisierung fehlgeschlagen. Ist der Desktop erreichbar?",
+    "recipeSaveFailed": "Rezept konnte nicht gespeichert werden: {{error}}"
   },
   "recipeCard": {
     "noDescription": "Keine Beschreibung",
