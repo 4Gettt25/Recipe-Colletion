@@ -41,7 +41,8 @@
           ]
         }
       ],
-      "icon": "electron/resources/icon.png"
+      "icon": "electron/resources/icon.png",
+      "artifactName": "Recipe-Collection-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
