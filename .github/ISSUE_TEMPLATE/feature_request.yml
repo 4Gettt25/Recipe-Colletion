@@ -1,0 +1,43 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a request, please check the [Roadmap](https://github.com/4Gettt25/Recipe-Colletion/blob/main/ROADMAP.md) — your idea might already be planned.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Feature summary
+      description: What do you want the app to do?
+      placeholder: "A short description of the feature"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem it solves
+      description: What's the use case or pain point behind this request?
+      placeholder: "I often find myself needing to … but currently …"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: How do you imagine this working? Mockups or examples are welcome.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Which platform should this apply to?
+      options:
+        - Both
+        - Electron (Windows desktop)
+        - Android
+    validations:
+      required: true

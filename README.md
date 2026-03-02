@@ -108,6 +108,12 @@ Once connected, desktop recipes appear in the app and can be saved offline. Phon
 
 ---
 
+## Roadmap
+
+See [ROADMAP.md](./ROADMAP.md) for planned features.
+
+---
+
 ## License
 
 MIT — see [LICENSE](./LICENSE)
