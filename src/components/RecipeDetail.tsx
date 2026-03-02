@@ -181,9 +181,11 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
               className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md"
             >
               <span className="font-medium">{ingredient.name}</span>
-              <span className="text-gray-600">
-                {scaleAmount(ingredient.amount)} {ingredient.unit}
-              </span>
+              {ingredient.amount > 0 && (
+                <span className="text-gray-600">
+                  {scaleAmount(ingredient.amount)}{ingredient.unit ? ' ' + ingredient.unit : ''}
+                </span>
+              )}
             </li>
           ))}
         </ul>

@@ -58,11 +58,11 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
   };
 
   const handleAddIngredient = () => {
-    if (newIngredient.name && newIngredient.amount) {
+    if (newIngredient.name.trim()) {
       const ingredient: Ingredient = {
         id: Math.random().toString(36).substring(2, 9),
-        name: newIngredient.name,
-        amount: parseFloat(newIngredient.amount),
+        name: newIngredient.name.trim(),
+        amount: newIngredient.amount ? parseFloat(newIngredient.amount) : 0,
         unit: newIngredient.unit,
       };
       setFormData((prev) => ({
@@ -217,29 +217,36 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
       {/* Ingredients */}
       <div className="space-y-3">
         <Label>{t('recipeForm.ingredientsLabel')}</Label>
-        <div className="flex gap-2">
-          <Input
-            placeholder={t('recipeForm.ingredientName')}
-            value={newIngredient.name}
-            onChange={(e) => setNewIngredient((prev) => ({ ...prev, name: e.target.value }))}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
-          />
-          <Input
-            placeholder={t('recipeForm.amount')}
-            type="number"
-            step="0.01"
-            className="w-24"
-            value={newIngredient.amount}
-            onChange={(e) => setNewIngredient((prev) => ({ ...prev, amount: e.target.value }))}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
-          />
-          <Input
-            placeholder={t('recipeForm.unit')}
-            className="w-24"
-            value={newIngredient.unit}
-            onChange={(e) => setNewIngredient((prev) => ({ ...prev, unit: e.target.value }))}
-            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
-          />
+        <div className="flex gap-2 items-end">
+          <div className="flex-1 space-y-1">
+            <span className="text-xs text-gray-500">{t('recipeForm.ingredientName')}</span>
+            <Input
+              placeholder={t('recipeForm.ingredientName')}
+              value={newIngredient.name}
+              onChange={(e) => setNewIngredient((prev) => ({ ...prev, name: e.target.value }))}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
+            />
+          </div>
+          <div className="w-24 space-y-1">
+            <span className="text-xs text-gray-500">{t('recipeForm.amount')} <span className="text-gray-400">(opt.)</span></span>
+            <Input
+              placeholder="e.g. 100"
+              type="number"
+              step="0.01"
+              value={newIngredient.amount}
+              onChange={(e) => setNewIngredient((prev) => ({ ...prev, amount: e.target.value }))}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
+            />
+          </div>
+          <div className="w-24 space-y-1">
+            <span className="text-xs text-gray-500">{t('recipeForm.unit')} <span className="text-gray-400">(opt.)</span></span>
+            <Input
+              placeholder="e.g. g"
+              value={newIngredient.unit}
+              onChange={(e) => setNewIngredient((prev) => ({ ...prev, unit: e.target.value }))}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddIngredient())}
+            />
+          </div>
           <Button type="button" onClick={handleAddIngredient} variant="secondary">
             <Plus className="w-4 h-4" />
           </Button>
@@ -251,7 +258,7 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
               className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
             >
               <span className="text-sm">
-                {ing.name}: {ing.amount} {ing.unit}
+                {ing.amount > 0 ? `${ing.name}: ${ing.amount}${ing.unit ? ' ' + ing.unit : ''}` : ing.name}
               </span>
               <button
                 type="button"

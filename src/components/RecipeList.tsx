@@ -155,8 +155,8 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
         </div>
         <div className="flex gap-2">
           <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-            <SelectTrigger className="w-[140px]">
-              <SlidersHorizontal className="w-4 h-4 mr-1" />
+            <SelectTrigger className="min-w-[140px] w-auto">
+              <SlidersHorizontal className="w-4 h-4 mr-1 shrink-0" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -167,7 +167,7 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
           </Select>
           {allTags.length > 0 && (
             <Select value={filterTag} onValueChange={setFilterTag}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="min-w-[120px] w-auto">
                 <SelectValue placeholder={t('recipeList.filterByTag')} />
               </SelectTrigger>
               <SelectContent>
