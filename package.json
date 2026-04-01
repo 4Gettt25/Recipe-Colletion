@@ -1,7 +1,7 @@
 {
   "name": "my-app",
   "private": true,
-  "version": "1.0.13",
+  "version": "1.0.14",
   "type": "module",
   "main": "electron/main.mjs",
   "scripts": {
@@ -17,7 +17,8 @@
     "postinstall": "node scripts/patch-nsis.js",
     "electron:rebuild": "npx @electron/rebuild -f -w better-sqlite3",
     "electron:dev": "npm run build && electron .",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "npm run build && electron-builder",
+    "generate-icons": "node scripts/generate-icons.mjs"
   },
   "build": {
     "appId": "com.recipe.app",
@@ -118,6 +119,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.1.0",
     "@eslint/js": "^9.39.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/better-sqlite3": "^7.6.12",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.3",

@@ -38,3 +38,5 @@ android/capacitor-cordova-android-plugins/
 # Android keystore (keep private)
 *.jks
 *.keystore
+
+store-assets-generator.html

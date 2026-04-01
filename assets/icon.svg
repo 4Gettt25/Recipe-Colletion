@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- White background -->
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+  <!--
+    Lucide ChefHat (v0.562) scaled to fill ~55% of canvas, centered.
+    Original 24×24 paths, scale=30, translate(152,152).
+    Effective icon area: x[302,722] y[242,782] — ~42% padding on all sides.
+    strokeWidth=1.8 → ~54px stroke at 1024px, ~10px at 192px, ~2.5px at 48px.
+  -->
+  <g transform="translate(152,152) scale(30)"
+     fill="none" stroke="#EA580C" stroke-width="1.8"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/>
+    <path d="M6 17h12"/>
+  </g>
+</svg>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <!-- Landscape splash — white background, chef hat centered -->
+  <rect width="1280" height="720" fill="#FFFFFF"/>
+  <!--
+    scale=20, translate(400,120) → icon area: x[500,780] y[180,540]
+    Center: x=640, y=360 — perfectly centered.
+    strokeWidth=0.75 → ~15px stroke at 1280px width.
+  -->
+  <g transform="translate(400,120) scale(20)"
+     fill="none" stroke="#EA580C" stroke-width="0.75"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/>
+    <path d="M6 17h12"/>
+  </g>
+</svg>
