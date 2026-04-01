@@ -108,4 +108,13 @@ ensureDir(electronDir);
 writeFileSync(join(electronDir, 'icon.png'), electronPng);
 console.log('  ✓ electron/resources/icon.png  512×512px');
 
+// ─── Feature graphic (Play Store / store listing banner) ─────────────────────
+
+console.log('\n🏪  Feature graphic');
+const featureSvg = readFileSync(join(root, 'assets/feature-graphic.svg'), 'utf8');
+const featurePng = renderWidth(featureSvg, 1024);
+ensureDir(join(root, 'assets'));
+writeFileSync(join(root, 'assets/feature-graphic.png'), featurePng);
+console.log('  ✓ assets/feature-graphic.png  1024×500px');
+
 console.log('\n✅ Done! Rebuild Android + Electron to apply changes.\n');
