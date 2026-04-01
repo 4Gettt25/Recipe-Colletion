@@ -1,15 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280">
-  <!-- Portrait splash — white background, chef hat above center for visual balance -->
-  <rect width="720" height="1280" fill="#FFFFFF"/>
-  <!--
-    scale=25, translate(60,280) → icon area: x[185,535] y[355,805]
-    Center: x=360, y=580 (slightly above vertical center 640 — looks balanced on phone).
-    strokeWidth=0.75 → ~19px stroke at 720px width.
-  -->
-  <g transform="translate(60,280) scale(25)"
-     fill="none" stroke="#EA580C" stroke-width="0.75"
-     stroke-linecap="round" stroke-linejoin="round">
-    <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/>
-    <path d="M6 17h12"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280"><rect width="720" height="1280" fill="#FFF"/><g fill="none" stroke="#EA580C" stroke-linecap="round" stroke-linejoin="round" stroke-width=".75"><path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z" transform="translate(60,280) scale(25)"/><path d="M6 17h12" transform="translate(60,280) scale(25)"/></g></svg>
