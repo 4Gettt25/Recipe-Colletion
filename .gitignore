@@ -40,3 +40,6 @@ android/capacitor-cordova-android-plugins/
 *.keystore
 
 store-assets-generator.html
+
+# Claude Code local config
+.claude/
