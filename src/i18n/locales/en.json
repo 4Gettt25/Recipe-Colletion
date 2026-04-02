@@ -117,5 +117,28 @@
   },
   "qrPanel": {
     "detectingIp": "Detecting local IP address…"
+  },
+  "shopping": {
+    "tab": "Shopping",
+    "noLists": "No shopping lists yet.",
+    "newList": "New list",
+    "listNamePlaceholder": "List name…",
+    "deleteListConfirm": "Delete \"{{name}}\" and all its items?",
+    "addItem": "Add item…",
+    "clearChecked": "Clear checked",
+    "importRecipes": "Add from recipe",
+    "importTitle": "Import ingredients",
+    "importAdd": "Add to list",
+    "portions": "Portions",
+    "noItems": "List is empty.",
+    "checkedSection": "Checked ({{count}})",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "syncPending": "Pending sync",
+    "create": "Create",
+    "deleteListTitle": "Delete list",
+    "amountPlaceholder": "Amount",
+    "unitPlaceholder": "Unit",
+    "amountOptional": "optional"
   }
 }

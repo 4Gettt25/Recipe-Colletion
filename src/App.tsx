@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Toaster, toast } from 'sonner';
-import { Settings } from 'lucide-react';
+import { Settings, ShoppingCart, ChefHat } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRecipes } from '@/hooks/useRecipes';
 import type { Recipe, RecipeFormData } from '@/types/recipe';
@@ -8,6 +8,7 @@ import { RecipeList } from '@/components/RecipeList';
 import { RecipeDetail } from '@/components/RecipeDetail';
 import { RecipeForm } from '@/components/RecipeForm';
 import { SettingsSheet } from '@/components/SettingsSheet';
+import { ShoppingApp } from '@/components/ShoppingApp';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { isNative, getServerUrl } from '@/lib/api';
@@ -23,6 +24,7 @@ export default function App() {
 
 function RecipeApp() {
   const { t } = useTranslation();
+  const [mainView, setMainView] = useState<'recipes' | 'shopping'>('recipes');
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -42,6 +44,8 @@ function RecipeApp() {
     syncToServer,
     saveToPhone,
   } = useRecipes();
+
+  const [localListCount, setLocalListCount] = useState(0);
 
   const handleSelectRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
@@ -133,6 +137,35 @@ function RecipeApp() {
               </div>
             </div>
           </div>
+
+          {/* Tab strip */}
+          <div className="flex gap-1 mt-3 bg-gray-100 p-1 rounded-lg w-fit">
+            <button
+              onClick={() => setMainView('recipes')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                mainView === 'recipes'
+                  ? 'bg-white text-orange-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <ChefHat className="w-4 h-4" />
+              {t('recipeList.title')}
+            </button>
+            <button
+              onClick={() => setMainView('shopping')}
+              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 relative ${
+                mainView === 'shopping'
+                  ? 'bg-white text-orange-600 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {t('shopping.tab')}
+              {isNative() && localListCount > 0 && (
+                <span className="w-2 h-2 bg-orange-500 rounded-full" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -146,7 +179,11 @@ function RecipeApp() {
       )}
 
       <main className="max-w-5xl mx-auto px-4 py-6">
-        {view === 'list' && (
+        {mainView === 'shopping' && (
+          <ShoppingApp recipes={recipes} onLocalListCountChange={setLocalListCount} />
+        )}
+
+        {mainView === 'recipes' && view === 'list' && (
           <RecipeList
             recipes={recipes}
             onAddRecipe={handleAddRecipe}
@@ -156,7 +193,7 @@ function RecipeApp() {
           />
         )}
 
-        {view === 'detail' && selectedRecipe && (
+        {mainView === 'recipes' && view === 'detail' && selectedRecipe && (
           <RecipeDetail
             recipe={selectedRecipe}
             onBack={handleBackToList}

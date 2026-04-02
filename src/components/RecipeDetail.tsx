@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import type { Recipe } from '@/types/recipe';
 import { StarRating } from './StarRating';
 import { useTranslation } from 'react-i18next';
+import { scaleAmount as scaleAmountUtil } from '@/lib/scaling';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,12 +33,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
 
   const scaleFactor = portions / recipe.basePortions;
 
-  const scaleAmount = (amount: number) => {
-    const scaled = amount * scaleFactor;
-    if (scaled >= 10) return Math.round(scaled);
-    if (scaled >= 1) return Math.round(scaled * 10) / 10;
-    return Math.round(scaled * 100) / 100;
-  };
+  const scaleAmount = (amount: number) => scaleAmountUtil(amount, scaleFactor);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(i18n.language, {

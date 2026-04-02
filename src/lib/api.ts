@@ -24,6 +24,12 @@ export function clearServerUrl(): void {
 }
 
 export const LOCAL_RECIPES_KEY = 'recipe-local-data';
+
+// Shopping list localStorage keys
+export const LOCAL_LISTS_KEY = 'shopping-lists-local';
+export const SERVER_LISTS_CACHE_KEY = 'shopping-lists-server-cache';
+export const SERVER_ITEMS_CACHE_PREFIX = 'shopping-items-cache';
+
 export function isConnected(): boolean {
   return isNative() && !!getServerUrl();
 }

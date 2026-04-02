@@ -117,5 +117,28 @@
   },
   "qrPanel": {
     "detectingIp": "Lokale IP-Adresse wird erkannt…"
+  },
+  "shopping": {
+    "tab": "Einkaufen",
+    "noLists": "Noch keine Einkaufslisten.",
+    "newList": "Neue Liste",
+    "listNamePlaceholder": "Listenname…",
+    "deleteListConfirm": "\"{{name}}\" und alle Einträge löschen?",
+    "addItem": "Eintrag hinzufügen…",
+    "clearChecked": "Abgehakte löschen",
+    "importRecipes": "Aus Rezept hinzufügen",
+    "importTitle": "Zutaten importieren",
+    "importAdd": "Zur Liste hinzufügen",
+    "portions": "Portionen",
+    "noItems": "Liste ist leer.",
+    "checkedSection": "Abgehakt ({{count}})",
+    "items_one": "{{count}} Eintrag",
+    "items_other": "{{count}} Einträge",
+    "syncPending": "Synchronisierung ausstehend",
+    "create": "Erstellen",
+    "deleteListTitle": "Liste löschen",
+    "amountPlaceholder": "Menge",
+    "unitPlaceholder": "Einheit",
+    "amountOptional": "optional"
   }
 }
