@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Tray, Menu, dialog, shell } from 'electron';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import pkg from 'electron-updater';
 const { autoUpdater } = pkg;
 
@@ -20,6 +20,15 @@ if (app.isPackaged) {
   process.env.RECIPES_DB_PATH = fileURLToPath(new URL('../server/recipes.db', import.meta.url));
 }
 
+// Register as default handler for recipes:// deep links.
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('recipes', process.execPath, [resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('recipes');
+}
+
 // Enforce single instance. If a second instance is launched with --quit
 // (by the installer), signal this instance to exit gracefully.
 const gotLock = app.requestSingleInstanceLock();
@@ -37,6 +46,21 @@ if (!gotLock) {
     } else {
       // Another launch attempt — bring the window to front.
       if (win) { win.show(); win.focus(); }
+      // Check if launched via a recipes:// deep link (Windows passes it as last argv)
+      const deepLinkUrl = commandLine.find(a => a.startsWith('recipes://'));
+      if (deepLinkUrl && win) {
+        win.webContents.send('deep-link-url', deepLinkUrl);
+      }
+    }
+  });
+
+  // macOS: deep link arrives via open-url event
+  app.on('open-url', (event, url) => {
+    event.preventDefault();
+    if (win) {
+      win.show();
+      win.focus();
+      win.webContents.send('deep-link-url', url);
     }
   });
 
@@ -67,6 +91,7 @@ if (!gotLock) {
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
+        preload: join(__dirname, 'preload.cjs'),
       },
     });
 
@@ -150,6 +175,14 @@ if (!gotLock) {
     createWindow();
     createTray();
     setupAutoUpdater();
+
+    // Handle cold-start deep link on Windows (URL passed as argv)
+    const coldStartUrl = process.argv.find(a => a.startsWith('recipes://'));
+    if (coldStartUrl) {
+      win.webContents.once('did-finish-load', () => {
+        win.webContents.send('deep-link-url', coldStartUrl);
+      });
+    }
   });
 
   // Don't auto-quit when all windows are closed — we live in the tray

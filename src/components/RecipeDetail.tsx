@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ArrowLeft, Edit2, Trash2, Minus, Plus, Users, ChefHat, ImageIcon } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Minus, Plus, Users, ChefHat, ImageIcon, Share2 } from 'lucide-react';
+import { ShareRecipeDialog } from './ShareRecipeDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -30,6 +31,7 @@ interface RecipeDetailProps {
 export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: RecipeDetailProps) {
   const { t, i18n } = useTranslation();
   const [portions, setPortions] = useState(recipe.basePortions);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const scaleFactor = portions / recipe.basePortions;
 
@@ -63,6 +65,10 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
+              <Share2 className="w-4 h-4 mr-1" />
+              {t('recipeDetail.share')}
+            </Button>
             <Button variant="outline" size="sm" onClick={onEdit}>
               <Edit2 className="w-4 h-4 mr-1" />
               {t('recipeDetail.edit')}
@@ -205,6 +211,7 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
           </ol>
         </div>
       )}
+      <ShareRecipeDialog recipe={recipe} open={shareOpen} onClose={() => setShareOpen(false)} />
     </div>
   );
 }

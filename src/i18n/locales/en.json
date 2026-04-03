@@ -45,7 +45,8 @@
     "portionsHint": "Base recipe makes {{count}} portions. Adjust to scale ingredients.",
     "ingredients": "Ingredients",
     "instructions": "Instructions",
-    "yourRating": "Your Rating:"
+    "yourRating": "Your Rating:",
+    "share": "Share"
   },
   "recipeForm": {
     "titleLabel": "Recipe Title *",
@@ -140,6 +141,21 @@
     "amountPlaceholder": "Amount",
     "unitPlaceholder": "Unit",
     "amountOptional": "optional"
+  },
+  "share": {
+    "title": "Share Recipe",
+    "hint": "Scan this QR code with the Recipe Collection app on another device to import this recipe.",
+    "copyLink": "Copy Link",
+    "copied": "Copied!",
+    "invalidLink": "Invalid share link.",
+    "largeWarning": "This recipe is large — the QR code may be hard to scan. Use \"Copy Link\" instead.",
+    "importTitle": "Import Recipe",
+    "importSubtitle": "Do you want to add this recipe to your collection?",
+    "importConfirm": "Import Recipe",
+    "importSuccess": "Recipe imported!",
+    "cancel": "Cancel",
+    "ingredients_one": "{{count}} ingredient",
+    "ingredients_other": "{{count}} ingredients"
   },
   "importUrl": {
     "importButton": "Import from URL",

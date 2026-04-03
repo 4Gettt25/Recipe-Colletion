@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
 import { Settings, ShoppingCart, ChefHat } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -10,9 +10,11 @@ import { RecipeForm } from '@/components/RecipeForm';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { ShoppingApp } from '@/components/ShoppingApp';
 import { RecipeUrlImportDialog } from '@/components/RecipeUrlImportDialog';
+import { ImportFromShareDialog } from '@/components/ImportFromShareDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { isNative, getServerUrl } from '@/lib/api';
+import { decodeShareUrl, type SharePayload } from '@/lib/shareRecipe';
 
 export default function App() {
   return (
@@ -33,6 +35,7 @@ function RecipeApp() {
   const [pendingImportData, setPendingImportData] = useState<Partial<RecipeFormData> | null>(null);
   const [importUrlOpen, setImportUrlOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [shareImportPayload, setShareImportPayload] = useState<SharePayload | null>(null);
 
   const {
     recipes,
@@ -49,6 +52,35 @@ function RecipeApp() {
   } = useRecipes();
 
   const [localListCount, setLocalListCount] = useState(0);
+
+  const handleShareUrl = useCallback((url: string) => {
+    const payload = decodeShareUrl(url);
+    if (payload) {
+      setShareImportPayload(payload);
+    } else {
+      toast.error(t('share.invalidLink'));
+    }
+  }, [t]);
+
+  // Capacitor deep link listener (Android)
+  useEffect(() => {
+    if (!isNative()) return;
+    let listenerRef: { remove: () => void } | null = null;
+    import('@capacitor/app').then(({ App: CapApp }) => {
+      CapApp.getLaunchUrl().then(r => { if (r?.url) handleShareUrl(r.url); });
+      CapApp.addListener('appUrlOpen', e => handleShareUrl(e.url)).then(l => {
+        listenerRef = l;
+      });
+    });
+    return () => { listenerRef?.remove(); };
+  }, [handleShareUrl]);
+
+  // Electron deep link listener
+  useEffect(() => {
+    const bridge = (window as Window & { electronBridge?: { onDeepLink: (cb: (url: string) => void) => void } }).electronBridge;
+    if (!bridge) return;
+    bridge.onDeepLink((url: string) => handleShareUrl(url));
+  }, [handleShareUrl]);
 
   const handleSelectRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
@@ -221,12 +253,23 @@ function RecipeApp() {
         localRecipeCount={localRecipeCount}
         onSyncToServer={syncToServer}
         connectionError={connectionError}
+        onShareUrl={handleShareUrl}
       />
 
       <RecipeUrlImportDialog
         open={importUrlOpen}
         onClose={() => setImportUrlOpen(false)}
         onImported={handleImported}
+      />
+
+      <ImportFromShareDialog
+        open={!!shareImportPayload}
+        payload={shareImportPayload}
+        onClose={() => setShareImportPayload(null)}
+        onImport={async (data) => {
+          await addRecipe(data);
+          toast.success(t('share.importSuccess'));
+        }}
       />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>

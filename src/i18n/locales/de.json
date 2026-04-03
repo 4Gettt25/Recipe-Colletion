@@ -45,7 +45,8 @@
     "portionsHint": "Basisrezept für {{count}} Portionen. Anpassen, um Zutaten zu skalieren.",
     "ingredients": "Zutaten",
     "instructions": "Zubereitung",
-    "yourRating": "Deine Bewertung:"
+    "yourRating": "Deine Bewertung:",
+    "share": "Teilen"
   },
   "recipeForm": {
     "titleLabel": "Rezepttitel *",
@@ -140,6 +141,21 @@
     "amountPlaceholder": "Menge",
     "unitPlaceholder": "Einheit",
     "amountOptional": "optional"
+  },
+  "share": {
+    "title": "Rezept teilen",
+    "hint": "Scanne diesen QR-Code mit der Rezepte-App auf einem anderen Gerät, um das Rezept zu importieren.",
+    "copyLink": "Link kopieren",
+    "copied": "Kopiert!",
+    "invalidLink": "Ungültiger Freigabelink.",
+    "largeWarning": "Dieses Rezept ist sehr umfangreich \u2013 der QR-Code ist m\u00f6glicherweise schwer zu scannen. Verwende stattdessen \u201eLink kopieren\u201c.",
+    "importTitle": "Rezept importieren",
+    "importSubtitle": "Möchtest du dieses Rezept zu deiner Sammlung hinzufügen?",
+    "importConfirm": "Rezept importieren",
+    "importSuccess": "Rezept importiert!",
+    "cancel": "Abbrechen",
+    "ingredients_one": "{{count}} Zutat",
+    "ingredients_other": "{{count}} Zutaten"
   },
   "importUrl": {
     "importButton": "URL importieren",

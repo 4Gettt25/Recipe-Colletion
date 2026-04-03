@@ -26,9 +26,10 @@ interface Props {
   localRecipeCount: number;
   onSyncToServer: () => Promise<void>;
   connectionError: string | false;
+  onShareUrl?: (url: string) => void;
 }
 
-export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer, connectionError }: Props) {
+export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer, connectionError, onShareUrl }: Props) {
   const { t } = useTranslation();
   const native = isNative();
   const serverUrl = getServerUrl();
@@ -70,13 +71,18 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
       });
       const rawValue = barcodes[0]?.rawValue;
       if (rawValue) {
-        saveServerUrl(rawValue);
-        window.location.reload();
+        if (rawValue.startsWith('recipes://share') && onShareUrl) {
+          onShareUrl(rawValue);
+          onClose();
+        } else {
+          saveServerUrl(rawValue);
+          window.location.reload();
+        }
       }
     } catch (err) {
       toast.error('Scan failed: ' + (err instanceof Error ? err.message : String(err)));
     }
-  }, []);
+  }, [onShareUrl, onClose]);
 
   const connectManual = useCallback(() => {
     let url = manualUrl.trim();

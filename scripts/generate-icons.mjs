@@ -106,7 +106,9 @@ const electronPng = renderWidth(iconSvg, 512);
 const electronDir = join(root, 'electron/resources');
 ensureDir(electronDir);
 writeFileSync(join(electronDir, 'icon.png'), electronPng);
+writeFileSync(join(root, 'assets/icon.png'), electronPng);
 console.log('  ✓ electron/resources/icon.png  512×512px');
+console.log('  ✓ assets/icon.png              512×512px');
 
 // ─── Feature graphic (Play Store / store listing banner) ─────────────────────
 
