@@ -99,7 +99,7 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-xs w-[360px]">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>{t('share.title')}</DialogTitle>
         </DialogHeader>
