@@ -7,11 +7,12 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Recipe } from '@/types/recipe';
 import { encodeShareUrl } from '@/lib/shareRecipe';
+import { isNative } from '@/lib/api';
 
 const QR_MAX_LENGTH = 4000;
-const QR_DISPLAY_SIZE = 200;
-const QR_EXPORT_SIZE = 400; // higher res for sharing
-const QR_PADDING = 24;      // white border around QR in exported image
+const QR_DISPLAY_SIZE = 260;  // bigger = more scannable modules
+const QR_EXPORT_SIZE  = 520;  // 2× for sharing
+const QR_PADDING      = 28;
 
 interface ShareRecipeDialogProps {
   recipe: Recipe;
@@ -19,12 +20,29 @@ interface ShareRecipeDialogProps {
   onClose: () => void;
 }
 
-const canNativeShare = typeof navigator !== 'undefined' && 'share' in navigator;
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const native = isNative();
 
   const shareUrl = useMemo(() => {
     try { return encodeShareUrl(recipe); } catch { return null; }
@@ -40,11 +58,10 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const exportQRImage = useCallback((): Promise<Blob | null> => {
+  const exportQRBlob = useCallback((): Promise<Blob | null> => {
     return new Promise(resolve => {
       const src = canvasRef.current;
       if (!src) return resolve(null);
-
       const total = QR_EXPORT_SIZE + QR_PADDING * 2;
       const out = document.createElement('canvas');
       out.width = total;
@@ -58,25 +75,27 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
   }, []);
 
   const shareQR = useCallback(async () => {
-    const blob = await exportQRImage();
+    const blob = await exportQRBlob();
     if (!blob) return;
-    const file = new File([blob], `${recipe.title}.png`, { type: 'image/png' });
-    try {
-      if (canNativeShare && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: recipe.title });
-      } else {
-        // Desktop fallback: download the PNG
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${recipe.title}-qr.png`;
-        a.click();
-        URL.revokeObjectURL(url);
+    const filename = `${recipe.title}.png`;
+
+    if (native) {
+      // Android: write to cache dir, share via native intent
+      try {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const { Share } = await import('@capacitor/share');
+        const base64 = await blobToBase64(blob);
+        await Filesystem.writeFile({ path: filename, data: base64, directory: Directory.Cache });
+        const { uri } = await Filesystem.getUri({ path: filename, directory: Directory.Cache });
+        await Share.share({ files: [uri], dialogTitle: t('share.shareQR') });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') toast.error('Could not share');
       }
-    } catch (err) {
-      if ((err as Error).name !== 'AbortError') toast.error('Could not share');
+    } else {
+      // Desktop: download the PNG
+      downloadBlob(blob, filename);
     }
-  }, [exportQRImage, recipe.title]);
+  }, [exportQRBlob, native, recipe.title, t]);
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
@@ -89,12 +108,17 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
           {!qrTooBig && shareUrl ? (
             <>
               <div className="p-3 bg-white rounded-xl border shadow-sm">
-                <QRCodeCanvas ref={canvasRef} value={shareUrl} size={QR_DISPLAY_SIZE} />
+                <QRCodeCanvas
+                  ref={canvasRef}
+                  value={shareUrl}
+                  size={QR_DISPLAY_SIZE}
+                  level="L"
+                  marginSize={2}
+                />
               </div>
 
-              {/* Share / Save QR image */}
               <Button className="w-full" onClick={shareQR}>
-                {canNativeShare
+                {native
                   ? <><Share2 className="w-4 h-4 mr-2" />{t('share.shareQR')}</>
                   : <><Download className="w-4 h-4 mr-2" />{t('share.saveQR')}</>
                 }
@@ -108,7 +132,6 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
             </p>
           )}
 
-          {/* Copy link always available as fallback */}
           <Button variant="outline" className="w-full" onClick={copy} disabled={!shareUrl}>
             {copied
               ? <><Check className="w-4 h-4 mr-2 text-green-500" />{t('share.copied')}</>
