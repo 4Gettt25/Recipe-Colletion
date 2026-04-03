@@ -1,25 +1,26 @@
+import LZString from 'lz-string';
 import type { Recipe, RecipeFormData } from '@/types/recipe';
 
 const SHARE_BASE_URL = 'https://4gettt25.github.io/Recipe-Colletion/share';
 
-// Compact wire format (v2) — short keys to minimise base64 length.
+// Compact wire format — short keys + lz-string compression.
 // Ingredient id is omitted and regenerated on import.
 interface WireIngredient { n: string; a: number; u: string; }
 
 interface SharePayloadV2 {
-  v: 2;
-  t: string;          // title
-  d: string;          // description
+  v: 2 | 3;
+  t: string;           // title
+  d: string;           // description
   i: WireIngredient[]; // ingredients
-  s: string[];        // steps (instructions)
-  p: number;          // portions
-  g: string[];        // tags
-  m?: string;         // imageUrl
+  s: string[];         // steps (instructions)
+  p: number;           // portions
+  g: string[];         // tags
+  m?: string;          // imageUrl
 }
 
-// Legacy v1 shape (still decoded for backward-compat)
+// Public shape used by the rest of the app
 export interface SharePayload {
-  v: 1 | 2;
+  v: number;
   title: string;
   description: string;
   ingredients: Recipe['ingredients'];
@@ -29,9 +30,9 @@ export interface SharePayload {
   imageUrl?: string;
 }
 
-function toV2(recipe: Recipe): SharePayloadV2 {
+function toWire(recipe: Recipe): SharePayloadV2 {
   return {
-    v: 2,
+    v: 3,
     t: recipe.title,
     d: recipe.description,
     i: recipe.ingredients.map(ing => ({ n: ing.name, a: ing.amount, u: ing.unit })),
@@ -43,41 +44,54 @@ function toV2(recipe: Recipe): SharePayloadV2 {
 }
 
 export function encodeShareUrl(recipe: Recipe): string {
-  const payload = toV2(recipe);
-  const json = JSON.stringify(payload);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  return `${SHARE_BASE_URL}#${b64}`;
+  const json = JSON.stringify(toWire(recipe));
+  const compressed = LZString.compressToEncodedURIComponent(json);
+  return `${SHARE_BASE_URL}#${compressed}`;
 }
 
-function normalise(raw: SharePayloadV2 | SharePayload): SharePayload {
-  if (raw.v === 2) {
-    const v2 = raw as unknown as SharePayloadV2;
+function tryDecodeHash(hash: string): string | null {
+  // v3: lz-string compressed
+  const lz = LZString.decompressFromEncodedURIComponent(hash);
+  if (lz) return lz;
+  // v1/v2 fallback: plain base64
+  try {
+    return decodeURIComponent(escape(atob(hash)));
+  } catch {
+    return null;
+  }
+}
+
+function normalise(raw: SharePayloadV2 | Record<string, unknown>): SharePayload {
+  if (raw.v === 2 || raw.v === 3) {
+    const r = raw as SharePayloadV2;
     return {
-      v: 2,
-      title: v2.t,
-      description: v2.d,
-      ingredients: v2.i.map((ing, idx) => ({
+      v: r.v,
+      title: r.t,
+      description: r.d,
+      ingredients: r.i.map((ing, idx) => ({
         id: String(idx),
         name: ing.n,
         amount: ing.a,
         unit: ing.u,
       })),
-      instructions: v2.s,
-      basePortions: v2.p,
-      tags: v2.g,
-      imageUrl: v2.m,
+      instructions: r.s,
+      basePortions: r.p,
+      tags: r.g,
+      imageUrl: r.m,
     };
   }
-  return raw as SharePayload;
+  // v1: fields already have long names
+  return raw as unknown as SharePayload;
 }
 
 export function decodeShareUrl(url: string): SharePayload | null {
   try {
     const hash = url.split('#')[1];
     if (!hash) return null;
-    const json = decodeURIComponent(escape(atob(hash)));
+    const json = tryDecodeHash(hash);
+    if (!json) return null;
     const raw = JSON.parse(json);
-    if (raw.v !== 1 && raw.v !== 2) return null;
+    if (raw.v !== 1 && raw.v !== 2 && raw.v !== 3) return null;
     return normalise(raw);
   } catch {
     return null;

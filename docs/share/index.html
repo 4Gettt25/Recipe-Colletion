@@ -76,6 +76,7 @@
     <p class="hint">Tap the button to import this recipe into the app.</p>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <script>
     (function () {
       var hash = location.hash.slice(1);
@@ -87,7 +88,9 @@
 
       // Decode and show recipe preview as fallback
       try {
-        var json = decodeURIComponent(escape(atob(hash)));
+        // Try lz-string first (v3), then plain base64 (v1/v2)
+        var json = LZString.decompressFromEncodedURIComponent(hash);
+        if (!json) json = decodeURIComponent(escape(atob(hash)));
         var raw = JSON.parse(json);
 
         var title, description, ingredients, tags, imageUrl, portions;
