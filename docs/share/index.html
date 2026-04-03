@@ -26,108 +26,110 @@
       width: 100%;
       box-shadow: 0 2px 12px rgba(0,0,0,.06);
     }
-    .logo {
-      font-size: 13px;
-      font-weight: 600;
-      color: #ea580c;
-      letter-spacing: .04em;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-    }
+    .logo { font-size: 13px; font-weight: 600; color: #ea580c; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 20px; }
     h1 { font-size: 22px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
     .meta { font-size: 13px; color: #888; margin-bottom: 16px; }
     .description { font-size: 14px; color: #444; line-height: 1.6; margin-bottom: 20px; }
     .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 24px; }
-    .tag {
-      background: #f3f4f6;
-      color: #555;
-      font-size: 12px;
-      padding: 3px 10px;
-      border-radius: 999px;
-    }
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 13px;
-      background: #ea580c;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-    }
+    .tag { background: #f3f4f6; color: #555; font-size: 12px; padding: 3px 10px; border-radius: 999px; }
+    .btn { display: block; width: 100%; padding: 13px; background: #ea580c; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; }
     .btn:hover { background: #c2410c; }
     .hint { font-size: 12px; color: #aaa; text-align: center; margin-top: 14px; }
     .error { color: #b91c1c; font-size: 14px; }
   </style>
 </head>
 <body>
-  <div class="card" id="card">
+  <div class="card">
     <div class="logo">Recipe Collection</div>
     <p class="error" id="error" style="display:none">Invalid share link.</p>
     <h1 id="title"></h1>
     <p class="meta" id="meta"></p>
     <p class="description" id="desc"></p>
     <div class="tags" id="tags"></div>
-    <a class="btn" id="openBtn" href="#">Open in Recipe Collection</a>
-    <p class="hint">Tap the button to import this recipe into the app.</p>
+    <a class="btn" id="openBtn" href="#" style="display:none">Open in Recipe Collection</a>
+    <p class="hint" id="hint" style="display:none">Tap the button to import this recipe into the app.</p>
   </div>
 
+  <!-- lz-string for v3 backward compat -->
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <script>
     (function () {
       var hash = location.hash.slice(1);
       if (!hash) { showError(); return; }
 
-      // Redirect the app via custom scheme (opens app if installed)
       var appUrl = 'recipes://share#' + hash;
+      // Try to open the app immediately
       location.href = appUrl;
 
-      // Decode and show recipe preview as fallback
-      try {
-        // Try lz-string first (v3), then plain base64 (v1/v2)
-        var json = LZString.decompressFromEncodedURIComponent(hash);
-        if (!json) json = decodeURIComponent(escape(atob(hash)));
-        var raw = JSON.parse(json);
+      decodeHash(hash).then(function(json) {
+        if (!json) { showError(); return; }
+        try {
+          var raw = JSON.parse(json);
+          var title, description, ingredients, tags, imageUrl, portions;
 
-        var title, description, ingredients, tags, imageUrl, portions;
+          if (Array.isArray(raw) && raw[0] === 4) {
+            // v4: array tuple [4, title, desc, [[name,amount,unit],...], steps, portions, tags, imageUrl?]
+            title = raw[1]; description = raw[2];
+            ingredients = raw[3]; portions = raw[5];
+            tags = raw[6]; imageUrl = raw[7];
+          } else if (raw.v === 2 || raw.v === 3) {
+            // v2/v3: compact keys
+            title = raw.t; description = raw.d;
+            ingredients = raw.i; portions = raw.p;
+            tags = raw.g; imageUrl = raw.m;
+          } else {
+            // v1: full keys
+            title = raw.title; description = raw.description;
+            ingredients = raw.ingredients; portions = raw.basePortions;
+            tags = raw.tags; imageUrl = raw.imageUrl;
+          }
 
-        if (raw.v === 2) {
-          title = raw.t; description = raw.d;
-          ingredients = raw.i; tags = raw.g;
-          imageUrl = raw.m; portions = raw.p;
-        } else if (raw.v === 1) {
-          title = raw.title; description = raw.description;
-          ingredients = raw.ingredients; tags = raw.tags;
-          imageUrl = raw.imageUrl; portions = raw.basePortions;
-        } else {
-          showError(); return;
-        }
+          var ingCount = Array.isArray(ingredients) ? ingredients.length : 0;
+          document.getElementById('title').textContent = title || 'Shared Recipe';
+          document.getElementById('meta').textContent = ingCount + ' ingredient' + (ingCount !== 1 ? 's' : '') + ' · ' + (portions || 1) + ' portion' + (portions !== 1 ? 's' : '');
+          if (description) document.getElementById('desc').textContent = description;
+          if (tags && tags.length) {
+            tags.forEach(function(tag) {
+              var span = document.createElement('span');
+              span.className = 'tag';
+              span.textContent = tag;
+              document.getElementById('tags').appendChild(span);
+            });
+          }
+          document.getElementById('openBtn').href = appUrl;
+          document.getElementById('openBtn').style.display = 'block';
+          document.getElementById('hint').style.display = 'block';
+        } catch(e) { showError(); }
+      });
 
-        document.getElementById('title').textContent = title || 'Shared Recipe';
-        document.getElementById('meta').textContent =
-          (ingredients ? ingredients.length : 0) + ' ingredients · ' + (portions || 1) + ' portions';
-        if (description) document.getElementById('desc').textContent = description;
-        if (tags && tags.length) {
-          tags.forEach(function(tag) {
-            var span = document.createElement('span');
-            span.className = 'tag';
-            span.textContent = tag;
-            document.getElementById('tags').appendChild(span);
-          });
-        }
-        document.getElementById('openBtn').href = appUrl;
-      } catch (e) {
-        showError();
+      // Try v4 (deflate-raw + base64url), then v3 (lz-string), then v1/v2 (base64)
+      async function decodeHash(h) {
+        // v4
+        try {
+          var b64 = h.replace(/-/g, '+').replace(/_/g, '/');
+          var binary = atob(b64);
+          var bytes = new Uint8Array(binary.length);
+          for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          var ds = new DecompressionStream('deflate-raw');
+          var writer = ds.writable.getWriter();
+          writer.write(bytes);
+          writer.close();
+          return await new Response(ds.readable).text();
+        } catch(e) {}
+
+        // v3 lz-string
+        try {
+          var lz = LZString.decompressFromEncodedURIComponent(h);
+          if (lz) return lz;
+        } catch(e) {}
+
+        // v1/v2 plain base64
+        try { return decodeURIComponent(escape(atob(h))); } catch(e) {}
+        return null;
       }
 
       function showError() {
         document.getElementById('error').style.display = '';
-        document.getElementById('title').style.display = 'none';
-        document.getElementById('openBtn').style.display = 'none';
       }
     })();
   </script>

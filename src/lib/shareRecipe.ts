@@ -1,24 +1,31 @@
-import LZString from 'lz-string';
+import { deflateSync, inflateSync, strToU8, strFromU8 } from 'fflate';
+import LZString from 'lz-string'; // kept for decoding v3 links
 import type { Recipe, RecipeFormData } from '@/types/recipe';
 
 const SHARE_BASE_URL = 'https://4gettt25.github.io/Recipe-Colletion/share';
 
-// Compact wire format — short keys + lz-string compression.
-// Ingredient id is omitted and regenerated on import.
-interface WireIngredient { n: string; a: number; u: string; }
+// ─── Wire format v4 ──────────────────────────────────────────────────────────
+// Array tuple — no keys at all. Positions:
+//  [0] version (4)
+//  [1] title
+//  [2] description
+//  [3] ingredients: [[name, amount, unit], ...]
+//  [4] instructions: [step, ...]
+//  [5] basePortions
+//  [6] tags: [tag, ...]
+//  [7] imageUrl (optional, omitted when undefined)
+type WireV4 = [
+  4,
+  string,
+  string,
+  [string, number, string][],
+  string[],
+  number,
+  string[],
+  (string | undefined)?,
+];
 
-interface SharePayloadV2 {
-  v: 2 | 3;
-  t: string;           // title
-  d: string;           // description
-  i: WireIngredient[]; // ingredients
-  s: string[];         // steps (instructions)
-  p: number;           // portions
-  g: string[];         // tags
-  m?: string;          // imageUrl
-}
-
-// Public shape used by the rest of the app
+// ─── Public shape used by the rest of the app ────────────────────────────────
 export interface SharePayload {
   v: number;
   title: string;
@@ -30,58 +37,101 @@ export interface SharePayload {
   imageUrl?: string;
 }
 
-function toWire(recipe: Recipe): SharePayloadV2 {
-  return {
-    v: 3,
-    t: recipe.title,
-    d: recipe.description,
-    i: recipe.ingredients.map(ing => ({ n: ing.name, a: ing.amount, u: ing.unit })),
-    s: recipe.instructions,
-    p: recipe.basePortions,
-    g: recipe.tags,
-    m: recipe.imageUrl?.startsWith('data:') ? undefined : recipe.imageUrl,
-  };
+// ─── Encoding ────────────────────────────────────────────────────────────────
+function toWireV4(recipe: Recipe): WireV4 {
+  const wire: WireV4 = [
+    4,
+    recipe.title,
+    recipe.description,
+    recipe.ingredients.map(ing => [ing.name, ing.amount, ing.unit]),
+    recipe.instructions,
+    recipe.basePortions,
+    recipe.tags,
+  ];
+  const imgUrl = recipe.imageUrl?.startsWith('data:') ? undefined : recipe.imageUrl;
+  if (imgUrl) wire.push(imgUrl);
+  return wire;
+}
+
+function base64urlEncode(bytes: Uint8Array): string {
+  let binary = '';
+  bytes.forEach(b => (binary += String.fromCharCode(b)));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 export function encodeShareUrl(recipe: Recipe): string {
-  const json = JSON.stringify(toWire(recipe));
-  const compressed = LZString.compressToEncodedURIComponent(json);
-  return `${SHARE_BASE_URL}#${compressed}`;
+  const json = JSON.stringify(toWireV4(recipe));
+  const compressed = deflateSync(strToU8(json), { level: 9 });
+  return `${SHARE_BASE_URL}#${base64urlEncode(compressed)}`;
+}
+
+// ─── Decoding ────────────────────────────────────────────────────────────────
+function base64urlDecode(str: string): Uint8Array {
+  const b64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
 }
 
 function tryDecodeHash(hash: string): string | null {
-  // v3: lz-string compressed
-  const lz = LZString.decompressFromEncodedURIComponent(hash);
-  if (lz) return lz;
-  // v1/v2 fallback: plain base64
+  // v4: deflate-raw + base64url
+  try {
+    return strFromU8(inflateSync(base64urlDecode(hash)));
+  } catch { /* not deflate */ }
+
+  // v3: lz-string
+  try {
+    const lz = LZString.decompressFromEncodedURIComponent(hash);
+    if (lz) return lz;
+  } catch { /* not lz-string */ }
+
+  // v1/v2: plain base64
   try {
     return decodeURIComponent(escape(atob(hash)));
-  } catch {
-    return null;
-  }
+  } catch { /* not base64 */ }
+
+  return null;
 }
 
-function normalise(raw: SharePayloadV2 | Record<string, unknown>): SharePayload {
-  if (raw.v === 2 || raw.v === 3) {
-    const r = raw as SharePayloadV2;
+function normalise(raw: unknown): SharePayload {
+  // v4: array tuple
+  if (Array.isArray(raw) && raw[0] === 4) {
+    const [, title, description, ings, instructions, basePortions, tags, imageUrl] = raw as WireV4;
+    return {
+      v: 4,
+      title,
+      description,
+      ingredients: ings.map(([name, amount, unit], idx) => ({
+        id: String(idx),
+        name,
+        amount,
+        unit,
+      })),
+      instructions,
+      basePortions,
+      tags,
+      imageUrl: imageUrl ?? undefined,
+    };
+  }
+
+  // v2/v3: compact object keys
+  if (!Array.isArray(raw) && (raw as Record<string,unknown>).v === 2 || !Array.isArray(raw) && (raw as Record<string,unknown>).v === 3) {
+    const r = raw as { v: number; t: string; d: string; i: {n:string;a:number;u:string}[]; s: string[]; p: number; g: string[]; m?: string };
     return {
       v: r.v,
       title: r.t,
       description: r.d,
-      ingredients: r.i.map((ing, idx) => ({
-        id: String(idx),
-        name: ing.n,
-        amount: ing.a,
-        unit: ing.u,
-      })),
+      ingredients: r.i.map((ing, idx) => ({ id: String(idx), name: ing.n, amount: ing.a, unit: ing.u })),
       instructions: r.s,
       basePortions: r.p,
       tags: r.g,
       imageUrl: r.m,
     };
   }
-  // v1: fields already have long names
-  return raw as unknown as SharePayload;
+
+  // v1: full field names
+  return raw as SharePayload;
 }
 
 export function decodeShareUrl(url: string): SharePayload | null {
@@ -91,7 +141,8 @@ export function decodeShareUrl(url: string): SharePayload | null {
     const json = tryDecodeHash(hash);
     if (!json) return null;
     const raw = JSON.parse(json);
-    if (raw.v !== 1 && raw.v !== 2 && raw.v !== 3) return null;
+    const version = Array.isArray(raw) ? raw[0] : (raw as Record<string,unknown>).v;
+    if (![1, 2, 3, 4].includes(version as number)) return null;
     return normalise(raw);
   } catch {
     return null;
