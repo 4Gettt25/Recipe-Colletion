@@ -10,8 +10,8 @@ import { encodeShareUrl } from '@/lib/shareRecipe';
 import { isNative } from '@/lib/api';
 
 const QR_MAX_LENGTH = 4000;
-const QR_DISPLAY_SIZE = 260;  // bigger = more scannable modules
-const QR_EXPORT_SIZE  = 520;  // 2× for sharing
+const QR_DISPLAY_SIZE = 300;
+const QR_EXPORT_SIZE  = 600;  // 2× for sharing
 const QR_PADDING      = 28;
 
 interface ShareRecipeDialogProps {
@@ -99,7 +99,7 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-xs w-[360px]">
         <DialogHeader>
           <DialogTitle>{t('share.title')}</DialogTitle>
         </DialogHeader>
