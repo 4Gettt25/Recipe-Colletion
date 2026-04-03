@@ -14,7 +14,7 @@ import { ImportFromShareDialog } from '@/components/ImportFromShareDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { isNative, getServerUrl } from '@/lib/api';
-import { decodeShareUrl, type SharePayload } from '@/lib/shareRecipe';
+import { decodeShareUrl, isShareUrl, type SharePayload } from '@/lib/shareRecipe';
 
 export default function App() {
   return (
@@ -67,8 +67,8 @@ function RecipeApp() {
     if (!isNative()) return;
     let listenerRef: { remove: () => void } | null = null;
     import('@capacitor/app').then(({ App: CapApp }) => {
-      CapApp.getLaunchUrl().then(r => { if (r?.url) handleShareUrl(r.url); });
-      CapApp.addListener('appUrlOpen', e => handleShareUrl(e.url)).then(l => {
+      CapApp.getLaunchUrl().then(r => { if (r?.url && isShareUrl(r.url)) handleShareUrl(r.url); });
+      CapApp.addListener('appUrlOpen', e => { if (isShareUrl(e.url)) handleShareUrl(e.url); }).then(l => {
         listenerRef = l;
       });
     });

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { isNative, getServerUrl, saveServerUrl, clearServerUrl } from '@/lib/api';
+import { isShareUrl } from '@/lib/shareRecipe';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n/i18n';
 
@@ -71,7 +72,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
       });
       const rawValue = barcodes[0]?.rawValue;
       if (rawValue) {
-        if (rawValue.startsWith('recipes://share') && onShareUrl) {
+        if (isShareUrl(rawValue) && onShareUrl) {
           onShareUrl(rawValue);
           onClose();
         } else {

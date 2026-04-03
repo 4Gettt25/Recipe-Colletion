@@ -57,14 +57,12 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
 
       {/* Title Section */}
       <div className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{recipe.title}</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {t('recipeDetail.createdOn', { date: formatDate(recipe.createdAt) })}
-            </p>
-          </div>
-          <div className="flex gap-2">
+        <div>
+          <h1 className="text-2xl font-bold">{recipe.title}</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {t('recipeDetail.createdOn', { date: formatDate(recipe.createdAt) })}
+          </p>
+          <div className="flex gap-2 mt-3 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => setShareOpen(true)}>
               <Share2 className="w-4 h-4 mr-1" />
               {t('recipeDetail.share')}
