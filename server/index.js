@@ -167,6 +167,228 @@ app.patch('/api/recipes/:id/favourite', (req, res) => {
   res.json({ id, favourite, updatedAt });
 });
 
+// ─── Import recipe from URL ───────────────────────────────────────────────────
+
+const UNITS = [
+  'tsp','teaspoon','teaspoons','tbsp','tablespoon','tablespoons',
+  'cup','cups','oz','ounce','ounces','lb','pound','pounds',
+  'g','gram','grams','kg','ml','l','liter','liters','litre','litres',
+  'pinch','dash','clove','cloves','slice','slices','piece','pieces',
+  'can','cans','pkg','package','packages','bunch','bunches',
+  'sprig','sprigs','handful','handfuls','stick','sticks',
+];
+
+const UNIT_CANON = {
+  teaspoon:'tsp', teaspoons:'tsp',
+  tablespoon:'tbsp', tablespoons:'tbsp',
+  cups:'cup', ounce:'oz', ounces:'oz',
+  pound:'lb', pounds:'lb', gram:'g', grams:'g',
+  liter:'l', liters:'l', litre:'l', litres:'l',
+};
+
+const VULGAR = { '½':'1/2','¼':'1/4','¾':'3/4','⅓':'1/3','⅔':'2/3','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8' };
+
+function stripHtml(str) {
+  return String(str ?? '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function parseAmount(raw) {
+  let s = String(raw).trim();
+  for (const [vf, dec] of Object.entries(VULGAR)) s = s.replace(new RegExp(vf, 'g'), dec);
+  const total = s.split(/\s+/).reduce((sum, part) => {
+    if (!part) return sum;
+    if (part.includes('/')) {
+      const [n, d] = part.split('/');
+      return sum + (parseFloat(n) || 0) / (parseFloat(d) || 1);
+    }
+    const v = parseFloat(part);
+    return sum + (isNaN(v) ? 0 : v);
+  }, 0);
+  return total;
+}
+
+function parseIngredientString(raw) {
+  const id = Math.random().toString(36).substring(2, 9);
+  let s = String(raw ?? '').trim();
+  // Replace vulgar fractions
+  for (const [vf, dec] of Object.entries(VULGAR)) s = s.replace(new RegExp(vf, 'g'), dec);
+
+  // Peel leading amount
+  const amtMatch = s.match(/^([\d\s./]+)/);
+  let amount = 0;
+  if (amtMatch) {
+    amount = parseAmount(amtMatch[1]);
+    s = s.slice(amtMatch[1].length).trimStart();
+  }
+
+  // Peel unit — lookahead instead of \b so "tsp." matches correctly
+  let unit = '';
+  const unitPattern = new RegExp(`^(${UNITS.join('|')})(?=[.,\\s]|$)`, 'i');
+  const unitMatch = s.match(unitPattern);
+  if (unitMatch) {
+    const raw_unit = unitMatch[1].toLowerCase();
+    unit = UNIT_CANON[raw_unit] ?? raw_unit;
+    s = s.slice(unitMatch[1].length).trimStart();
+  }
+
+  // Strip leading noise ("of", period after unit, comma, dash)
+  s = s.replace(/^(of|,|\.|–|-)\s*/i, '').trim();
+
+  return { id, name: s || raw.trim(), amount, unit };
+}
+
+function splitIntoSteps(text) {
+  const clean = stripHtml(text);
+  if (!clean) return [];
+  // Prefer newline splits when present
+  const byNewline = clean.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  if (byNewline.length > 1) return byNewline;
+  // Fallback: split on ". Capital" sentence boundaries (handles single-blob strings)
+  const sentences = clean.split(/\.\s+(?=[A-Z])/).map(s => s.trim()).filter(Boolean);
+  // Re-add the period that was consumed by the split (last sentence keeps its own punctuation)
+  return sentences.map(s => /[.!?]$/.test(s) ? s : s + '.');
+}
+
+function normaliseInstructions(raw) {
+  if (!raw) return [];
+  if (typeof raw === 'string') return splitIntoSteps(raw);
+  if (!Array.isArray(raw)) return [];
+  const steps = [];
+  for (const item of raw) {
+    if (typeof item === 'string') { splitIntoSteps(item).forEach(t => steps.push(t)); continue; }
+    if (item['@type'] === 'HowToSection' && Array.isArray(item.itemListElement)) {
+      for (const sub of item.itemListElement) {
+        splitIntoSteps(sub.text || sub.name || '').forEach(t => steps.push(t));
+      }
+      continue;
+    }
+    splitIntoSteps(item.text || item.name || '').forEach(t => steps.push(t));
+  }
+  return steps;
+}
+
+function normaliseImage(raw) {
+  if (!raw) return undefined;
+  if (typeof raw === 'string') return raw;
+  if (Array.isArray(raw)) return raw[0] ? normaliseImage(raw[0]) : undefined;
+  if (typeof raw === 'object' && raw.url) return raw.url;
+  return undefined;
+}
+
+function normalisePortions(raw) {
+  if (!raw) return 2;
+  const m = String(raw).match(/\d+/);
+  return m ? parseInt(m[0], 10) : 2;
+}
+
+function normaliseTags(ld) {
+  const parts = [];
+  const push = (v) => {
+    if (!v) return;
+    if (Array.isArray(v)) v.forEach(push);
+    else String(v).split(/[,;]+/).forEach(t => { const s = t.trim(); if (s) parts.push(s); });
+  };
+  push(ld.keywords); push(ld.recipeCategory); push(ld.recipeCuisine);
+  return [...new Set(parts)];
+}
+
+function findRecipeLd(parsed) {
+  const isRecipe = (node) => {
+    if (!node || typeof node !== 'object') return false;
+    const t = node['@type'];
+    return t === 'Recipe' || (Array.isArray(t) && t.includes('Recipe'));
+  };
+  if (Array.isArray(parsed)) {
+    for (const item of parsed) {
+      const found = findRecipeLd(item);
+      if (found) return found;
+    }
+    return null;
+  }
+  if (isRecipe(parsed)) return parsed;
+  if (Array.isArray(parsed['@graph'])) {
+    for (const node of parsed['@graph']) { if (isRecipe(node)) return node; }
+  }
+  return null;
+}
+
+app.post('/api/recipes/import-url', async (req, res) => {
+  const { url } = req.body;
+  if (!url) return res.status(400).json({ message: 'No URL provided.' });
+
+  let parsed;
+  try { parsed = new URL(url); } catch {
+    return res.status(400).json({ message: 'Invalid URL.' });
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return res.status(400).json({ message: 'Only http and https URLs are supported.' });
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  let html;
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9,de;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0',
+      },
+    });
+    if (!response.ok) return res.status(400).json({ message: `Could not fetch the page (HTTP ${response.status}).` });
+    html = await response.text();
+  } catch (err) {
+    if (err.name === 'AbortError') return res.status(400).json({ message: 'The request timed out. Try again.' });
+    return res.status(400).json({ message: `Failed to fetch the URL: ${err.message}` });
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  // Extract all JSON-LD blocks
+  const ldBlocks = [];
+  const ldRegex = /<script[^>]*type=["']?application\/ld\+json["']?[^>]*>([\s\S]*?)<\/script>/gi;
+  let match;
+  while ((match = ldRegex.exec(html)) !== null) {
+    try { ldBlocks.push(JSON.parse(match[1])); } catch { /* skip malformed */ }
+  }
+
+  if (ldBlocks.length === 0) return res.status(400).json({ message: 'No structured data found on that page.' });
+
+  let ld = null;
+  for (const block of ldBlocks) { ld = findRecipeLd(block); if (ld) break; }
+  if (!ld) return res.status(400).json({ message: 'No Recipe data found on that page.' });
+
+  const result = {
+    title: stripHtml(ld.name || ''),
+    description: stripHtml(ld.description || ''),
+    ingredients: (ld.recipeIngredient || []).map(parseIngredientString),
+    instructions: normaliseInstructions(ld.recipeInstructions),
+    basePortions: normalisePortions(ld.recipeYield),
+    imageUrl: normaliseImage(ld.image),
+    tags: normaliseTags(ld),
+    rating: 0,
+    favourite: false,
+  };
+
+  res.json(result);
+});
+
 // ─── Shopping list helpers ────────────────────────────────────────────────────
 
 function parseItem(row) {
@@ -315,7 +537,7 @@ const dist = join(__dirname, '../dist');
 app.use(express.static(dist));
 app.get('*', (_req, res) => res.sendFile(join(dist, 'index.html')));
 
-const PORT = 3001;
+const PORT = 51739;
 app.listen(PORT, () => {
   console.log(`App running on http://localhost:${PORT}`);
 });

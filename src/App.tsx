@@ -9,6 +9,7 @@ import { RecipeDetail } from '@/components/RecipeDetail';
 import { RecipeForm } from '@/components/RecipeForm';
 import { SettingsSheet } from '@/components/SettingsSheet';
 import { ShoppingApp } from '@/components/ShoppingApp';
+import { RecipeUrlImportDialog } from '@/components/RecipeUrlImportDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { isNative, getServerUrl } from '@/lib/api';
@@ -29,6 +30,8 @@ function RecipeApp() {
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [pendingImportData, setPendingImportData] = useState<Partial<RecipeFormData> | null>(null);
+  const [importUrlOpen, setImportUrlOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
   const {
@@ -62,6 +65,12 @@ function RecipeApp() {
     setIsFormOpen(true);
   };
 
+  const handleImported = (data: Partial<RecipeFormData>) => {
+    setPendingImportData(data);
+    setEditingRecipe(null);
+    setIsFormOpen(true);
+  };
+
   const handleEditRecipe = () => {
     if (selectedRecipe) {
       setEditingRecipe(selectedRecipe);
@@ -83,6 +92,7 @@ function RecipeApp() {
       }
       setIsFormOpen(false);
       setEditingRecipe(null);
+      setPendingImportData(null);
     } catch (err) {
       toast.error(t('toast.recipeSaveFailed', { error: (err as Error).message }));
     }
@@ -190,6 +200,7 @@ function RecipeApp() {
             onSelectRecipe={handleSelectRecipe}
             onToggleFavourite={toggleFavourite}
             onSaveToPhone={(id) => { saveToPhone(id); toast.success(t('toast.savedToPhone')); }}
+            onImportFromUrl={(!isNative() || !!getServerUrl()) ? () => setImportUrlOpen(true) : undefined}
           />
         )}
 
@@ -212,6 +223,12 @@ function RecipeApp() {
         connectionError={connectionError}
       />
 
+      <RecipeUrlImportDialog
+        open={importUrlOpen}
+        onClose={() => setImportUrlOpen(false)}
+        onImported={handleImported}
+      />
+
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -220,11 +237,12 @@ function RecipeApp() {
             </DialogTitle>
           </DialogHeader>
           <RecipeForm
-            initialData={editingRecipe || undefined}
+            initialData={editingRecipe || pendingImportData || undefined}
             onSubmit={handleSaveRecipe}
             onCancel={() => {
               setIsFormOpen(false);
               setEditingRecipe(null);
+              setPendingImportData(null);
             }}
           />
         </DialogContent>

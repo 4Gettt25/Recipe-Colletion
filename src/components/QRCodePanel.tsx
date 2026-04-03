@@ -14,7 +14,7 @@ export function QRCodePanel({ open, onClose }: Props) {
   const { t } = useTranslation();
   const [ips, setIps] = useState<string[]>([]);
   const [selectedIp, setSelectedIp] = useState<string | null>(null);
-  const [port, setPort] = useState<number>(3001);
+  const [port, setPort] = useState<number>(51739);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {

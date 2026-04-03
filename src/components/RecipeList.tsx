@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, SlidersHorizontal, ChefHat, Heart } from 'lucide-react';
+import { Plus, Search, SlidersHorizontal, ChefHat, Heart, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -19,9 +19,10 @@ interface RecipeListProps {
   onSelectRecipe: (recipe: Recipe) => void;
   onToggleFavourite: (id: string) => void;
   onSaveToPhone?: (id: string) => void;
+  onImportFromUrl?: () => void;
 }
 
-export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavourite, onSaveToPhone }: RecipeListProps) {
+export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavourite, onSaveToPhone, onImportFromUrl }: RecipeListProps) {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'rating' | 'alphabetical'>('newest');
@@ -111,10 +112,18 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
             })}
           </p>
         </div>
-        <Button onClick={onAddRecipe}>
-          <Plus className="w-4 h-4 mr-1" />
-          {t('recipeList.addRecipe')}
-        </Button>
+        <div className="flex gap-2">
+          {onImportFromUrl && (
+            <Button variant="outline" onClick={onImportFromUrl}>
+              <Globe className="w-4 h-4 mr-1" />
+              {t('importUrl.importButton')}
+            </Button>
+          )}
+          <Button onClick={onAddRecipe}>
+            <Plus className="w-4 h-4 mr-1" />
+            {t('recipeList.addRecipe')}
+          </Button>
+        </div>
       </div>
 
       {/* All / Favourites Tabs */}

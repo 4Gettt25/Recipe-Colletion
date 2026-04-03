@@ -140,5 +140,16 @@
     "amountPlaceholder": "Amount",
     "unitPlaceholder": "Unit",
     "amountOptional": "optional"
+  },
+  "importUrl": {
+    "importButton": "Import from URL",
+    "title": "Import Recipe from URL",
+    "description": "Paste a recipe page URL and we'll extract the recipe data automatically.",
+    "urlLabel": "Recipe URL",
+    "import": "Import",
+    "importing": "Importing…",
+    "cancel": "Cancel",
+    "errorGeneric": "No recipe found on that page. Try another URL.",
+    "errorNetwork": "Could not reach the server. Check your connection."
   }
 }

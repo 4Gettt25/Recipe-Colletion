@@ -36,7 +36,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
 
   const [ips, setIps] = useState<string[]>([]);
   const [selectedIp, setSelectedIp] = useState<string | null>(null);
-  const [port, setPort] = useState<number>(3001);
+  const [port, setPort] = useState<number>(51739);
   const [copied, setCopied] = useState(false);
 
   const [manualUrl, setManualUrl] = useState('');
@@ -203,7 +203,7 @@ export function SettingsSheet({ open, onClose, localRecipeCount, onSyncToServer,
                   </div>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="192.168.1.x:3001"
+                      placeholder="192.168.1.x:51739"
                       value={manualUrl}
                       onChange={e => setManualUrl(e.target.value)}
                       className="text-sm"

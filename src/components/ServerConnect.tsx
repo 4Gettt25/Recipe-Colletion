@@ -81,7 +81,7 @@ export function ServerConnect({ onConnected }: Props) {
 
         <div className="flex gap-2">
           <Input
-            placeholder="192.168.1.x:3001"
+            placeholder="192.168.1.x:51739"
             value={manualUrl}
             onChange={(e) => setManualUrl(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && connectManual()}

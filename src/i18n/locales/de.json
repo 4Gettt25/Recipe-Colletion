@@ -140,5 +140,16 @@
     "amountPlaceholder": "Menge",
     "unitPlaceholder": "Einheit",
     "amountOptional": "optional"
+  },
+  "importUrl": {
+    "importButton": "URL importieren",
+    "title": "Rezept per URL importieren",
+    "description": "Rezept-URL einfügen – die Rezeptdaten werden automatisch ausgelesen.",
+    "urlLabel": "Rezept-URL",
+    "import": "Importieren",
+    "importing": "Wird importiert…",
+    "cancel": "Abbrechen",
+    "errorGeneric": "Kein Rezept auf dieser Seite gefunden. Bitte andere URL versuchen.",
+    "errorNetwork": "Server nicht erreichbar. Verbindung prüfen."
   }
 }

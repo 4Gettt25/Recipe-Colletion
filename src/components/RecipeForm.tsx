@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Plus, Trash2, X, ImageIcon } from 'lucide-react';
+import { Plus, Trash2, X, ImageIcon, Pencil, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +33,8 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
   });
   const [newTag, setNewTag] = useState('');
   const [newIngredient, setNewIngredient] = useState({ name: '', amount: '', unit: '' });
+  const [editingIngredientId, setEditingIngredientId] = useState<string | null>(null);
+  const [editingIngredient, setEditingIngredient] = useState({ name: '', amount: '', unit: '' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -78,6 +80,25 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
       ...prev,
       ingredients: prev.ingredients.filter((i) => i.id !== id),
     }));
+    if (editingIngredientId === id) setEditingIngredientId(null);
+  };
+
+  const handleStartEditIngredient = (ing: Ingredient) => {
+    setEditingIngredientId(ing.id);
+    setEditingIngredient({ name: ing.name, amount: ing.amount > 0 ? String(ing.amount) : '', unit: ing.unit });
+  };
+
+  const handleSaveEditIngredient = (id: string) => {
+    if (!editingIngredient.name.trim()) return;
+    setFormData((prev) => ({
+      ...prev,
+      ingredients: prev.ingredients.map((i) =>
+        i.id === id
+          ? { ...i, name: editingIngredient.name.trim(), amount: editingIngredient.amount ? parseFloat(editingIngredient.amount) : 0, unit: editingIngredient.unit }
+          : i
+      ),
+    }));
+    setEditingIngredientId(null);
   };
 
   const handleAddInstruction = () => {
@@ -252,23 +273,55 @@ export function RecipeForm({ initialData, onSubmit, onCancel }: RecipeFormProps)
           </Button>
         </div>
         <div className="space-y-2">
-          {formData.ingredients.map((ing) => (
-            <div
-              key={ing.id}
-              className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md"
-            >
-              <span className="text-sm">
-                {ing.amount > 0 ? `${ing.name}: ${ing.amount}${ing.unit ? ' ' + ing.unit : ''}` : ing.name}
-              </span>
-              <button
-                type="button"
-                onClick={() => handleRemoveIngredient(ing.id)}
-                className="text-red-500 hover:text-red-700"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+          {formData.ingredients.map((ing) =>
+            editingIngredientId === ing.id ? (
+              <div key={ing.id} className="flex gap-2 items-center bg-gray-50 px-3 py-2 rounded-md">
+                <Input
+                  className="flex-1 h-8 text-sm"
+                  value={editingIngredient.name}
+                  onChange={e => setEditingIngredient(prev => ({ ...prev, name: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleSaveEditIngredient(ing.id))}
+                  autoFocus
+                />
+                <Input
+                  className="w-20 h-8 text-sm"
+                  type="number"
+                  step="0.01"
+                  placeholder="amt"
+                  value={editingIngredient.amount}
+                  onChange={e => setEditingIngredient(prev => ({ ...prev, amount: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleSaveEditIngredient(ing.id))}
+                />
+                <Input
+                  className="w-16 h-8 text-sm"
+                  placeholder="unit"
+                  value={editingIngredient.unit}
+                  onChange={e => setEditingIngredient(prev => ({ ...prev, unit: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleSaveEditIngredient(ing.id))}
+                />
+                <button type="button" onClick={() => handleSaveEditIngredient(ing.id)} className="text-green-600 hover:text-green-700">
+                  <Check className="w-4 h-4" />
+                </button>
+                <button type="button" onClick={() => handleRemoveIngredient(ing.id)} className="text-red-500 hover:text-red-700">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div key={ing.id} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                <span className="text-sm">
+                  {ing.amount > 0 ? `${ing.name}: ${ing.amount}${ing.unit ? ' ' + ing.unit : ''}` : ing.name}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => handleStartEditIngredient(ing)} className="text-gray-400 hover:text-gray-600">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button type="button" onClick={() => handleRemoveIngredient(ing.id)} className="text-red-500 hover:text-red-700">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )
+          )}
         </div>
       </div>
 

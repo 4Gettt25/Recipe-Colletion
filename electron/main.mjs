@@ -47,13 +47,13 @@ if (!gotLock) {
   async function waitForServer(retries = 30) {
     for (let i = 0; i < retries; i++) {
       try {
-        await fetch('http://localhost:3001/api/recipes');
+        await fetch('http://localhost:51739/api/recipes');
         return;
       } catch {
         await new Promise(r => setTimeout(r, 200));
       }
     }
-    throw new Error('Recipe server failed to start on port 3001');
+    throw new Error('Recipe server failed to start on port 51739');
   }
 
   function createWindow() {
@@ -70,7 +70,7 @@ if (!gotLock) {
       },
     });
 
-    win.loadURL('http://localhost:3001');
+    win.loadURL('http://localhost:51739');
 
     // Close hides to tray instead of quitting
     win.on('close', (e) => {
