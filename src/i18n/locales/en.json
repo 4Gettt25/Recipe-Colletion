@@ -145,6 +145,8 @@
   "share": {
     "title": "Share Recipe",
     "hint": "Scan this QR code with the Recipe Collection app on another device to import this recipe.",
+    "shareQR": "Share QR Code",
+    "saveQR": "Save QR Code",
     "copyLink": "Copy Link",
     "copied": "Copied!",
     "invalidLink": "Invalid share link.",

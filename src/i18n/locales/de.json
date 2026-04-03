@@ -145,6 +145,8 @@
   "share": {
     "title": "Rezept teilen",
     "hint": "Scanne diesen QR-Code mit der Rezepte-App auf einem anderen Gerät, um das Rezept zu importieren.",
+    "shareQR": "QR-Code teilen",
+    "saveQR": "QR-Code speichern",
     "copyLink": "Link kopieren",
     "copied": "Kopiert!",
     "invalidLink": "Ungültiger Freigabelink.",
