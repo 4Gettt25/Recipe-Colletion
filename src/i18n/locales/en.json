@@ -148,6 +148,7 @@
     "shareQR": "Share QR Code",
     "saveQR": "Save QR Code",
     "copyLink": "Copy Link",
+    "shortening": "Creating short link…",
     "copied": "Copied!",
     "invalidLink": "Invalid share link.",
     "largeWarning": "This recipe is large — the QR code may be hard to scan. Use \"Copy Link\" instead.",

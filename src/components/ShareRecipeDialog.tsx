@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Copy, Check, Share2, Download } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { Recipe } from '@/types/recipe';
-import { encodeShareUrl } from '@/lib/shareRecipe';
+import { encodeShareUrl, shortenShareUrl } from '@/lib/shareRecipe';
 import { isNative } from '@/lib/api';
 
 const QR_MAX_LENGTH = 4000;
@@ -44,9 +44,27 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const native = isNative();
 
-  const shareUrl = useMemo(() => {
-    try { return encodeShareUrl(recipe); } catch { return null; }
-  }, [recipe]);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shortening, setShortening] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    setShareUrl(null);
+    setShortening(true);
+    (async () => {
+      try {
+        const long = encodeShareUrl(recipe);
+        const short = await shortenShareUrl(long);
+        if (!cancelled) setShareUrl(short);
+      } catch {
+        // leave null — UI will show fallback warning
+      } finally {
+        if (!cancelled) setShortening(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, recipe]);
 
   const qrTooBig = !shareUrl || shareUrl.length > QR_MAX_LENGTH;
 
@@ -105,7 +123,11 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
         </DialogHeader>
 
         <div className="flex flex-col items-center gap-4">
-          {!qrTooBig && shareUrl ? (
+          {shortening ? (
+            <div className="flex items-center justify-center h-[300px] text-sm text-gray-400">
+              {t('share.shortening')}
+            </div>
+          ) : !qrTooBig && shareUrl ? (
             <>
               <div className="p-3 bg-white rounded-xl border shadow-sm">
                 <QRCodeCanvas
@@ -132,7 +154,7 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
             </p>
           )}
 
-          <Button variant="outline" className="w-full" onClick={copy} disabled={!shareUrl}>
+          <Button variant="outline" className="w-full" onClick={copy} disabled={!shareUrl || shortening}>
             {copied
               ? <><Check className="w-4 h-4 mr-2 text-green-500" />{t('share.copied')}</>
               : <><Copy className="w-4 h-4 mr-2" />{t('share.copyLink')}</>

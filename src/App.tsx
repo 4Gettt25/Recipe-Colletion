@@ -14,7 +14,7 @@ import { ImportFromShareDialog } from '@/components/ImportFromShareDialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { isNative, getServerUrl } from '@/lib/api';
-import { decodeShareUrl, isShareUrl, type SharePayload } from '@/lib/shareRecipe';
+import { decodeShareUrl, isShareUrl, resolveShareUrl, type SharePayload } from '@/lib/shareRecipe';
 
 export default function App() {
   return (
@@ -53,8 +53,9 @@ function RecipeApp() {
 
   const [localListCount, setLocalListCount] = useState(0);
 
-  const handleShareUrl = useCallback((url: string) => {
-    const payload = decodeShareUrl(url);
+  const handleShareUrl = useCallback(async (url: string) => {
+    const resolved = await resolveShareUrl(url);
+    const payload = decodeShareUrl(resolved);
     if (payload) {
       setShareImportPayload(payload);
     } else {

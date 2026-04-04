@@ -98,7 +98,7 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <ChefHat className="w-7 h-7 text-orange-600" />
@@ -113,16 +113,16 @@ export function RecipeList({ recipes, onAddRecipe, onSelectRecipe, onToggleFavou
           </p>
         </div>
         <div className="flex gap-2">
+          <Button onClick={onAddRecipe}>
+            <Plus className="w-4 h-4 mr-1" />
+            {t('recipeList.addRecipe')}
+          </Button>
           {onImportFromUrl && (
             <Button variant="outline" onClick={onImportFromUrl}>
               <Globe className="w-4 h-4 mr-1" />
               {t('importUrl.importButton')}
             </Button>
           )}
-          <Button onClick={onAddRecipe}>
-            <Plus className="w-4 h-4 mr-1" />
-            {t('recipeList.addRecipe')}
-          </Button>
         </div>
       </div>
 

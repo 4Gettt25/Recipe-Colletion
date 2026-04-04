@@ -3,6 +3,8 @@ import LZString from 'lz-string'; // kept for decoding v3 links
 import type { Recipe, RecipeFormData } from '@/types/recipe';
 
 const SHARE_BASE_URL = 'https://4gettt25.github.io/Recipe-Colletion/share';
+const SHLINK_WORKER_URL = 'https://shlink-api.felix-guenther24.workers.dev';
+const SHLINK_DOMAIN = 'recipe.fmox.org';
 
 // ─── Wire format v4 ──────────────────────────────────────────────────────────
 // Array tuple — no keys at all. Positions:
@@ -57,6 +59,39 @@ function base64urlEncode(bytes: Uint8Array): string {
   let binary = '';
   bytes.forEach(b => (binary += String.fromCharCode(b)));
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+export function isShlinkUrl(url: string): boolean {
+  try { return new URL(url).hostname === SHLINK_DOMAIN; } catch { return false; }
+}
+
+/** Shortens a long share URL via the Cloudflare Worker. Falls back to longUrl on error. */
+export async function shortenShareUrl(longUrl: string): Promise<string> {
+  try {
+    const resp = await fetch(SHLINK_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ longUrl }),
+    });
+    if (!resp.ok) return longUrl;
+    const data = await resp.json();
+    return (data as { shortUrl?: string }).shortUrl ?? longUrl;
+  } catch {
+    return longUrl;
+  }
+}
+
+/** Resolves a Shlink short URL to the full GitHub Pages URL (with hash) via the Worker. Falls back to url on error. */
+export async function resolveShareUrl(url: string): Promise<string> {
+  if (!isShlinkUrl(url)) return url;
+  try {
+    const resp = await fetch(`${SHLINK_WORKER_URL}?resolve=${encodeURIComponent(url)}`);
+    if (!resp.ok) return url;
+    const data = await resp.json();
+    return (data as { resolvedUrl?: string }).resolvedUrl ?? url;
+  } catch {
+    return url;
+  }
 }
 
 export function encodeShareUrl(recipe: Recipe): string {
@@ -165,5 +200,7 @@ export function sharePayloadToFormData(payload: SharePayload): RecipeFormData {
 
 /** Returns true for any URL that encodes a shared recipe. */
 export function isShareUrl(url: string): boolean {
-  return url.startsWith('recipes://share') || url.includes('/Recipe-Colletion/share#');
+  return url.startsWith('recipes://share')
+    || url.includes('/Recipe-Colletion/share#')
+    || isShlinkUrl(url);
 }

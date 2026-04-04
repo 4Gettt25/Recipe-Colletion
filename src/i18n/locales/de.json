@@ -148,6 +148,7 @@
     "shareQR": "QR-Code teilen",
     "saveQR": "QR-Code speichern",
     "copyLink": "Link kopieren",
+    "shortening": "Kurzlink wird erstellt…",
     "copied": "Kopiert!",
     "invalidLink": "Ungültiger Freigabelink.",
     "largeWarning": "Dieses Rezept ist sehr umfangreich \u2013 der QR-Code ist m\u00f6glicherweise schwer zu scannen. Verwende stattdessen \u201eLink kopieren\u201c.",
