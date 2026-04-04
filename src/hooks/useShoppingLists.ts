@@ -215,19 +215,24 @@ export function useShoppingLists() {
       setLocalLists(prev => [list, ...prev]);
       return;
     }
+    if (native) {
+      // Optimistic: show immediately, sync in background
+      setLocalLists(prev => [list, ...prev]);
+    }
     try {
       await fetch(`${apiBase}/shopping-lists`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(list),
       });
+      if (native) {
+        // Promote from local to server list
+        setLocalLists(prev => prev.filter(l => l.id !== list.id));
+      }
       setServerLists(prev => [list, ...prev]);
     } catch {
-      if (native) {
-        setLocalLists(prev => [list, ...prev]);
-      } else {
-        throw new Error('Failed to create list');
-      }
+      if (!native) throw new Error('Failed to create list');
+      // native: already in local lists from optimistic update, stays until reconnect
     }
   }, [apiBase, native, setLocalLists]);
 

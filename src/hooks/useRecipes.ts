@@ -56,6 +56,15 @@ export function useRecipes() {
     });
   }, []);
 
+  // Like setServerRecipes but also persists to localStorage cache immediately
+  const setAndCacheServerRecipes = useCallback((updater: (prev: Recipe[]) => Recipe[]) => {
+    setServerRecipes(prev => {
+      const next = updater(prev);
+      cacheServerRecipes(next);
+      return next;
+    });
+  }, []);
+
   // Load phone-local recipes from localStorage on startup (mobile only)
   useEffect(() => {
     if (!native) return;
@@ -156,7 +165,7 @@ export function useRecipes() {
           const body = await res.json().catch(() => ({}));
           throw new Error((body as { error?: string }).error || `HTTP ${res.status}`);
         }
-        setServerRecipes(prev => [{ ...newRecipe, source: 'server' as const }, ...prev]);
+        setAndCacheServerRecipes(prev => [{ ...newRecipe, source: 'server' as const }, ...prev]);
       } catch (err) {
         if (native) {
           // Mobile: server might be offline — fall back to local storage
@@ -182,7 +191,7 @@ export function useRecipes() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
       });
-      setServerRecipes(prev =>
+      setAndCacheServerRecipes(prev =>
         prev.map(r => r.id === id ? { ...r, ...updated } : r)
       );
     }
@@ -193,7 +202,7 @@ export function useRecipes() {
       setLocalRecipes(prev => prev.filter(r => r.id !== id));
     } else {
       await fetch(`${apiBase}/recipes/${id}`, { method: 'DELETE' });
-      setServerRecipes(prev => prev.filter(r => r.id !== id));
+      setAndCacheServerRecipes(prev => prev.filter(r => r.id !== id));
     }
   }, [apiBase, localRecipes, setLocalRecipes]);
 
@@ -202,37 +211,49 @@ export function useRecipes() {
       setLocalRecipes(prev =>
         prev.map(r => r.id === id ? { ...r, favourite: !r.favourite } : r)
       );
-    } else {
-      const recipe = serverRecipes.find(r => r.id === id);
-      if (!recipe) return;
-      const favourite = !recipe.favourite;
+      return;
+    }
+    const recipe = serverRecipes.find(r => r.id === id);
+    if (!recipe) return;
+    const favourite = !recipe.favourite;
+    // Optimistic update — works offline and caches immediately
+    setAndCacheServerRecipes(prev =>
+      prev.map(r => r.id === id ? { ...r, favourite } : r)
+    );
+    if (!apiBase) return;
+    try {
       await fetch(`${apiBase}/recipes/${id}/favourite`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ favourite }),
       });
-      setServerRecipes(prev =>
-        prev.map(r => r.id === id ? { ...r, favourite } : r)
-      );
+    } catch {
+      // Keep optimistic update; server will be in sync on next successful poll
     }
-  }, [apiBase, localRecipes, serverRecipes, setLocalRecipes]);
+  }, [apiBase, localRecipes, serverRecipes, setLocalRecipes, setAndCacheServerRecipes]);
 
   const updateRating = useCallback(async (id: string, rating: number) => {
     if (localRecipes.some(r => r.id === id)) {
       setLocalRecipes(prev =>
         prev.map(r => r.id === id ? { ...r, rating } : r)
       );
-    } else {
-      const result = await fetch(`${apiBase}/recipes/${id}/rating`, {
+      return;
+    }
+    // Optimistic update — works offline and caches immediately
+    setAndCacheServerRecipes(prev =>
+      prev.map(r => r.id === id ? { ...r, rating } : r)
+    );
+    if (!apiBase) return;
+    try {
+      await fetch(`${apiBase}/recipes/${id}/rating`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating }),
-      }).then(r => r.json());
-      setServerRecipes(prev =>
-        prev.map(r => r.id === id ? { ...r, rating, updatedAt: result.updatedAt } : r)
-      );
+      });
+    } catch {
+      // Keep optimistic update; server will be in sync on next successful poll
     }
-  }, [apiBase, localRecipes, setLocalRecipes]);
+  }, [apiBase, localRecipes, setLocalRecipes, setAndCacheServerRecipes]);
 
   const saveToPhone = useCallback((id: string) => {
     const recipe = serverRecipes.find(r => r.id === id);
@@ -256,7 +277,7 @@ export function useRecipes() {
       )
     );
     const idsToRemove = new Set(toSync.map(r => r.id));
-    setServerRecipes(prev => [...prev, ...toSync.map(r => ({ ...r, source: 'server' as const }))]);
+    setAndCacheServerRecipes(prev => [...prev, ...toSync.map(r => ({ ...r, source: 'server' as const }))]);
     setLocalRecipes(prev => prev.filter(r => !idsToRemove.has(r.id)));
   }, [apiBase, localRecipes, serverRecipes, setLocalRecipes]);
 

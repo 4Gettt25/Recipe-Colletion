@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getApiBase } from '@/lib/api';
+import { getApiBase, isNative } from '@/lib/api';
+import { extractRecipeFromHtml } from '@/lib/parseRecipeUrl';
 import type { RecipeFormData } from '@/types/recipe';
 import { useTranslation } from 'react-i18next';
 
@@ -32,19 +33,41 @@ export function RecipeUrlImportDialog({ open, onClose, onImported }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const base = getApiBase();
-      const res = await fetch(`${base}/recipes/import-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.message ?? t('importUrl.errorGeneric'));
-        return;
+      if (isNative()) {
+        // Android: use CapacitorHttp to bypass CORS, parse client-side
+        const { CapacitorHttp } = await import('@capacitor/core');
+        const response = await CapacitorHttp.get({
+          url: url.trim(),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          },
+          responseType: 'text',
+        });
+        if (response.status < 200 || response.status >= 300) {
+          setError(t('importUrl.errorGeneric'));
+          return;
+        }
+        const data = extractRecipeFromHtml(response.data as string);
+        if (!data) { setError(t('importUrl.errorGeneric')); return; }
+        onImported(data);
+        handleClose();
+      } else {
+        // Desktop: proxy through local Express server endpoint
+        const base = getApiBase();
+        const res = await fetch(`${base}/recipes/import-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url.trim() }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.message ?? t('importUrl.errorGeneric'));
+          return;
+        }
+        onImported(data);
+        handleClose();
       }
-      onImported(data);
-      handleClose();
     } catch {
       setError(t('importUrl.errorNetwork'));
     } finally {

@@ -233,7 +233,7 @@ function RecipeApp() {
             onSelectRecipe={handleSelectRecipe}
             onToggleFavourite={toggleFavourite}
             onSaveToPhone={(id) => { saveToPhone(id); toast.success(t('toast.savedToPhone')); }}
-            onImportFromUrl={(!isNative() || !!getServerUrl()) ? () => setImportUrlOpen(true) : undefined}
+            onImportFromUrl={() => setImportUrlOpen(true)}
           />
         )}
 

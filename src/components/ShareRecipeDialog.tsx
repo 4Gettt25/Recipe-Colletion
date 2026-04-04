@@ -46,16 +46,23 @@ export function ShareRecipeDialog({ recipe, open, onClose }: ShareRecipeDialogPr
 
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shortening, setShortening] = useState(false);
+  const shortUrlCache = useRef<Map<string, string>>(new Map());
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    setShareUrl(null);
-    setShortening(true);
     (async () => {
       try {
         const long = encodeShareUrl(recipe);
+        const cached = shortUrlCache.current.get(long);
+        if (cached) {
+          if (!cancelled) setShareUrl(cached);
+          return;
+        }
+        setShareUrl(null);
+        setShortening(true);
         const short = await shortenShareUrl(long);
+        shortUrlCache.current.set(long, short);
         if (!cancelled) setShareUrl(short);
       } catch {
         // leave null — UI will show fallback warning
