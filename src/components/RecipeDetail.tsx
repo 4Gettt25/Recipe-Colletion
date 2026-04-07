@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Edit2, Trash2, Minus, Plus, Users, ChefHat, ImageIcon, Share2 } from 'lucide-react';
+import { Edit2, Trash2, Minus, Plus, Users, ChefHat, ImageIcon, Share2 } from 'lucide-react';
 import { ShareRecipeDialog } from './ShareRecipeDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,13 +22,12 @@ import {
 
 interface RecipeDetailProps {
   recipe: Recipe;
-  onBack: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onRate: (rating: number) => void;
 }
 
-export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: RecipeDetailProps) {
+export function RecipeDetail({ recipe, onEdit, onDelete, onRate }: RecipeDetailProps) {
   const { t, i18n } = useTranslation();
   const [portions, setPortions] = useState(recipe.basePortions);
   const [shareOpen, setShareOpen] = useState(false);
@@ -47,14 +46,6 @@ export function RecipeDetail({ recipe, onBack, onEdit, onDelete, onRate }: Recip
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-1" />
-          {t('recipeDetail.back')}
-        </Button>
-      </div>
-
       {/* Title Section */}
       <div className="space-y-4">
         <div>

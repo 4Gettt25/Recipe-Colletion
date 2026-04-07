@@ -65,32 +65,36 @@ export function ShoppingListDetail({
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          {t('recipeDetail.back')}
-        </Button>
-        <h2 className="text-lg font-bold flex-1 truncate">{listName}</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setImportOpen(true)}
-          className="shrink-0"
-        >
-          <ShoppingCart className="w-4 h-4 mr-1" />
-          {t('shopping.importRecipes')}
-        </Button>
-        {checked.length > 0 && (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={onBack} className="shrink-0">
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            {t('recipeDetail.back')}
+          </Button>
+          <h2 className="text-lg font-bold flex-1 truncate">{listName}</h2>
+        </div>
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={onClearChecked}
-            className="shrink-0 text-red-600 hover:text-red-700"
+            onClick={() => setImportOpen(true)}
+            className="shrink-0"
           >
-            <Trash2 className="w-4 h-4 mr-1" />
-            {t('shopping.clearChecked')}
+            <ShoppingCart className="w-4 h-4 mr-1" />
+            {t('shopping.importRecipes')}
           </Button>
-        )}
+          {checked.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearChecked}
+              className="shrink-0 text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="w-4 h-4 mr-1" />
+              {t('shopping.clearChecked')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Unchecked items */}

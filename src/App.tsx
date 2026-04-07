@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Toaster, toast } from 'sonner';
-import { Settings, ShoppingCart, ChefHat } from 'lucide-react';
+import { Settings, ShoppingCart, ChefHat, ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useRecipes } from '@/hooks/useRecipes';
 import type { Recipe, RecipeFormData } from '@/types/recipe';
@@ -31,6 +31,7 @@ function RecipeApp() {
   const [view, setView] = useState<'list' | 'detail'>('list');
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [pendingImportData, setPendingImportData] = useState<Partial<RecipeFormData> | null>(null);
   const [importUrlOpen, setImportUrlOpen] = useState(false);
@@ -86,11 +87,13 @@ function RecipeApp() {
   const handleSelectRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
     setView('detail');
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleBackToList = () => {
     setSelectedRecipe(null);
     setView('list');
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const handleAddRecipe = () => {
@@ -112,6 +115,8 @@ function RecipeApp() {
   };
 
   const handleSaveRecipe = async (formData: RecipeFormData) => {
+    if (isFormSubmitting) return;
+    setIsFormSubmitting(true);
     try {
       if (editingRecipe) {
         await updateRecipe(editingRecipe.id, formData);
@@ -128,6 +133,8 @@ function RecipeApp() {
       setPendingImportData(null);
     } catch (err) {
       toast.error(t('toast.recipeSaveFailed', { error: (err as Error).message }));
+    } finally {
+      setIsFormSubmitting(false);
     }
   };
 
@@ -157,59 +164,71 @@ function RecipeApp() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-10" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1
-              onClick={handleBackToList}
-              className="text-xl font-bold text-orange-600 cursor-pointer hover:text-orange-700 transition-colors"
-            >
-              {t('app.title')}
-            </h1>
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-gray-500">
-                {t('app.recipeCount', { count: recipes.length })}
-              </div>
-              <div className="relative">
-                <Button size="sm" variant="ghost" onClick={() => setShowSettings(true)}>
-                  <Settings className="w-4 h-4" />
-                </Button>
-                {isNative() && localRecipeCount > 0 && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full" />
-                )}
+      <header className="sticky top-0 z-10">
+        <div className="bg-white border-b" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="max-w-5xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <h1
+                onClick={handleBackToList}
+                className="text-xl font-bold text-orange-600 cursor-pointer hover:text-orange-700 transition-colors"
+              >
+                {t('app.title')}
+              </h1>
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-gray-500">
+                  {t('app.recipeCount', { count: recipes.length })}
+                </div>
+                <div className="relative">
+                  <Button size="sm" variant="ghost" onClick={() => setShowSettings(true)}>
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                  {isNative() && localRecipeCount > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full" />
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Tab strip */}
-          <div className="flex gap-1 mt-3 bg-gray-100 p-1 rounded-lg w-fit">
-            <button
-              onClick={() => setMainView('recipes')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
-                mainView === 'recipes'
-                  ? 'bg-white text-orange-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <ChefHat className="w-4 h-4" />
-              {t('recipeList.title')}
-            </button>
-            <button
-              onClick={() => setMainView('shopping')}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 relative ${
-                mainView === 'shopping'
-                  ? 'bg-white text-orange-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              <ShoppingCart className="w-4 h-4" />
-              {t('shopping.tab')}
-              {isNative() && localListCount > 0 && (
-                <span className="w-2 h-2 bg-orange-500 rounded-full" />
-              )}
-            </button>
+            {/* Tab strip */}
+            <div className="flex gap-1 mt-3 bg-gray-100 p-1 rounded-lg w-fit">
+              <button
+                onClick={() => setMainView('recipes')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  mainView === 'recipes'
+                    ? 'bg-white text-orange-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <ChefHat className="w-4 h-4" />
+                {t('recipeList.title')}
+              </button>
+              <button
+                onClick={() => setMainView('shopping')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 relative ${
+                  mainView === 'shopping'
+                    ? 'bg-white text-orange-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <ShoppingCart className="w-4 h-4" />
+                {t('shopping.tab')}
+                {isNative() && localListCount > 0 && (
+                  <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Back button — gray strip that looks like page content but sticks with the header */}
+        {mainView === 'recipes' && view === 'detail' && (
+          <div className="bg-gray-50 max-w-5xl mx-auto px-4 py-1">
+            <Button variant="ghost" size="sm" onClick={handleBackToList} className="-ml-2">
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              {t('recipeDetail.back')}
+            </Button>
+          </div>
+        )}
       </header>
 
       {connectionError && isNative() && getServerUrl() && (
@@ -240,7 +259,6 @@ function RecipeApp() {
         {mainView === 'recipes' && view === 'detail' && selectedRecipe && (
           <RecipeDetail
             recipe={selectedRecipe}
-            onBack={handleBackToList}
             onEdit={handleEditRecipe}
             onDelete={handleDeleteRecipe}
             onRate={handleRateRecipe}
@@ -283,6 +301,7 @@ function RecipeApp() {
           <RecipeForm
             initialData={editingRecipe || pendingImportData || undefined}
             onSubmit={handleSaveRecipe}
+            isSubmitting={isFormSubmitting}
             onCancel={() => {
               setIsFormOpen(false);
               setEditingRecipe(null);
